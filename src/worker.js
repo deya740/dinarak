@@ -122,9 +122,20 @@ async function handleAsk(request, env) {
   return json({ text, left: typeof usage.left === 'number' ? usage.left : null });
 }
 
+function status(env) {
+  const k = env.SUPABASE_ANON_KEY || '';
+  return json({
+    gemini_key: env.GEMINI_API_KEY ? 'ok' : 'missing',
+    supabase_url: env.SUPABASE_URL ? 'ok' : 'missing',
+    supabase_key: !k ? 'missing' : /^PASTE/i.test(k) ? 'still_placeholder' : 'ok',
+    model: env.GEMINI_MODEL || 'gemini-3.5-flash',
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/status') return status(env);
     if (url.pathname === '/api/ask') return handleAsk(request, env);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);
     return env.ASSETS.fetch(request);
