@@ -1,5 +1,15 @@
 {
   "name": "dinarak",
+  "main": "src/worker.js",
   "compatibility_date": "2026-07-03",
-  "assets": { "directory": "./" }
+  "assets": {
+    "directory": "./",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "SUPABASE_URL": "https://hojrsdxeciywnngmvtcu.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_nNaWg1MLfjuQu5bg4jc8yA_61-E6K7W",
+    "GEMINI_MODEL": "gemini-3.5-flash"
+  }
 }
