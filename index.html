@@ -179,6 +179,7 @@ nav.nav .add svg{stroke:var(--accent-ink);width:26px;height:26px}
 
 .oauth{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:14px;font-size:16.5px;font-weight:600;margin-top:12px}
 .oauth.apple{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.fine a{color:var(--accent);text-decoration:underline}
 .oauth:disabled{opacity:.5;cursor:not-allowed}
 .oauth .gl{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;background:var(--paper);color:var(--ink)}
 .link{display:block;margin:14px auto 0;border:0;background:transparent;color:var(--muted);text-decoration:underline;font-size:14.5px}
@@ -505,7 +506,7 @@ function viewAuth(){
     '<button class="oauth" data-act="auth-go" data-prov="google"><span class="gl">G</span>المتابعة باستخدام Google</button>'+
     '<button class="oauth apple" data-act="auth-go" data-prov="apple" '+(CLOUD?'disabled':'')+'><span class="gl">A</span>'+(CLOUD?'Apple قريباً':'المتابعة باستخدام Apple')+'</button>'+
     (ui.returning?'<button class="link" data-act="new-user">مستخدم جديد؟ ابدأ من الأول</button>':'<button class="link" data-act="back-persona">رجوع</button>')+
-    '<p class="fine" style="margin-top:16px">'+(CLOUD?'نستخدم حساب Google فقط لتسجيل دخولك. ما نشوف كلمة مرورك، وما نطلب بيانات البنك أبداً. بياناتك مرتبطة بحسابك وحدك.':'نسخة تجريبية: الزرّان ينشئان حساباً محلياً على جهازك فقط. ما نشوف كلمة مرورك ولا نطلب بيانات البنك.')+'</p></main>';
+    '<p class="fine" style="margin-top:16px">'+(CLOUD?'نستخدم حساب Google فقط لتسجيل دخولك. ما نشوف كلمة مرورك، وما نطلب بيانات البنك أبداً. بياناتك مرتبطة بحسابك وحدك.':'نسخة تجريبية: الزرّان ينشئان حساباً محلياً على جهازك فقط. ما نشوف كلمة مرورك ولا نطلب بيانات البنك.')+'<br>بمتابعتك أنت توافق على <a href="terms.html" target="_blank" rel="noopener">الشروط</a> و<a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p></main>';
 }
 function viewLoading(){
   return '<main class="shell auth"><div class="auth-hero">'+guil(360,170,16,48,0.05,1.1)+lockup(84)+'</div><p class="muted" style="text-align:center">'+(ui.loadFail?'تعذّر الاتصال بالسيرفر.':'جاري التحميل…')+'</p>'+(ui.loadFail?'<button class="btn block" data-act="retry-load">حاول مرة ثانية</button>':'')+'</main>';
@@ -637,7 +638,7 @@ function viewAccount(){
     '<section class="blk"><div class="row-i"><div class="t"><b>الشخصية</b><small>'+pLabel(S.persona)+' — '+P[S.persona].tag+'</small></div></div>'+
     '<p class="fine">'+(CLOUD?'غيّر شخصيتك (بياناتك تبقى كما هي):':'جرّب شخصية ثانية (بالنموذج الأولي تُستبدل البيانات الوهمية):')+'</p><div class="chips">'+
     others.map(function(o){return '<button class="btn ghost small" data-act="switch" data-p="'+o+'">'+pLabel(o)+'</button>'}).join('')+'</div></section>'+
-    '<section class="blk"><h2 class="sec disp">سجلّك وخصوصيتك</h2><ul class="plain"><li>سجلّك الشهري يبقى محفوظاً ما دام حسابك موجوداً، ولا يُحذف تلقائياً.</li><li>تقرير كل شهر مجاني دائماً.</li><li>ما نطلب بيانات دخول البنك أبداً.</li></ul>'+
+    '<section class="blk"><h2 class="sec disp">سجلّك وخصوصيتك</h2><ul class="plain"><li>سجلّك الشهري يبقى محفوظاً ما دام حسابك موجوداً، ولا يُحذف تلقائياً.</li><li>تقرير كل شهر مجاني دائماً.</li><li>ما نطلب بيانات دخول البنك أبداً.</li><li><a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a> · <a href="terms.html" target="_blank" rel="noopener">الشروط</a></li></ul>'+
     '<button class="btn danger block" data-act="del-account">'+(ui.accArm?'تأكيد: احذف كل بياناتي نهائياً':'احذف كل بياناتي')+'</button></section>'+
     '<section class="blk"><h2 class="sec disp">الخطط</h2><div class="banner"><span class="fbadge">فترة الإطلاق</span><span>كل ما يلي مجاني الآن. كل ميزة بعلامة "مجاني الآن" ستنضم لاحقاً للخطة المدفوعة.</span></div>'+
     '<div class="row-i"><div class="t"><b>سجل الحركات وتقرير كل شهر</b><small>يبقى مجانياً دائماً</small></div><span class="fbadge">مجاني دائماً</span></div>'+
