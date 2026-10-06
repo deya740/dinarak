@@ -327,7 +327,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -393,10 +393,7 @@ function cloudSignedIn(user){
     var d=r&&r.data&&r.data.data, u;
     if(d&&typeof d==='object'&&(d.country||d.persona)){u=d}
     else{
-      var pre=ui.pre, saved=readPre();
-      if(saved&&saved.country&&saved.persona)pre=saved;
-      u={country:(pre&&pre.country)||null,persona:null,tx:[],goals:[],bills:[],debts:[],ai:{date:TODAY,used:0},billsMonth:MONTH};
-      if(pre&&pre.persona&&u.country)u.persona=pre.persona;
+      u={country:null,persona:null,tx:[],goals:[],bills:[],debts:[],ai:{date:TODAY,used:0},billsMonth:MONTH};
     }
     ls(function(){localStorage.removeItem(PKEY)});
     u.email=user.email||'';u.provider=(user.app_metadata&&user.app_metadata.provider)||'google';
@@ -510,22 +507,22 @@ function icon(n){return '<svg viewBox="0 0 24 24" aria-hidden="true">'+IC[n]+'</
 
 /* ---------- views: onboarding, sign-in last ---------- */
 function viewAuth(){
-  var pre=!ui.returning&&ui.pre.country&&ui.pre.persona;
   return '<main class="shell auth"><div class="auth-hero">'+guil(360,170,16,48,0.05,1.1)+lockup(84)+'</div>'+
-    '<h1 class="tag disp">'+(pre?'آخر خطوة: احفظ سجلّك':'أهلاً بعودتك')+'</h1>'+
-    (pre?'<p class="muted" style="text-align:center;margin:0 0 6px">'+C().n+' · '+pLabel(ui.pre.persona)+'</p>':'')+
-    '<p class="muted" style="text-align:center;margin-top:4px">سجّل دخولك لتبقى مصاريفك محفوظة شهراً بعد شهر، وترجع لها من أي جهاز.</p>'+
+    '<h1 class="tag disp">مرحباً بك في دينارك</h1>'+
+    '<p class="muted" style="text-align:center;margin:0 0 6px">مصاريفك مرتّبة، شهر بعد شهر.</p>'+
+    '<p class="muted" style="text-align:center;margin-top:4px">سجّل دخولك، وبعدها نسألك سؤالين بسيطين (بلدك وشخصيتك) مرة وحدة بس.</p>'+
     '<button class="oauth" data-act="auth-go" data-prov="google"><span class="gl">G</span>المتابعة باستخدام Google</button>'+
     '<button class="oauth apple" data-act="auth-go" data-prov="apple" '+(CLOUD?'disabled':'')+'><span class="gl">A</span>'+(CLOUD?'Apple قريباً':'المتابعة باستخدام Apple')+'</button>'+
-    (ui.returning?'<button class="link" data-act="new-user">مستخدم جديد؟ ابدأ من الأول</button>':'<button class="link" data-act="back-persona">رجوع</button>')+
-    '<p class="fine" style="margin-top:16px">'+(CLOUD?'نستخدم حساب Google فقط لتسجيل دخولك. ما نشوف كلمة مرورك، وما نطلب بيانات البنك أبداً. بياناتك مرتبطة بحسابك وحدك.':'نسخة تجريبية: الزرّان ينشئان حساباً محلياً على جهازك فقط. ما نشوف كلمة مرورك ولا نطلب بيانات البنك.')+'<br>بمتابعتك أنت توافق على <a href="terms.html" target="_blank" rel="noopener">الشروط</a> و<a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p></main>';
+    '<p class="fine" style="margin-top:16px">'+(CLOUD?'نستخدم حساب Google فقط لتسجيل دخولك. ما نشوف كلمة مرورك، وما نطلب بيانات البنك أبداً. بياناتك مرتبطة بحسابك وحدك.':'نسخة تجريبية: الزرّان ينشئان حساباً محلياً على جهازك فقط. ما نشوف كلمة مرورك ولا نطلب بيانات البنك.')+
+    '<br>بمتابعتك أنت توافق على <a href="terms.html" target="_blank" rel="noopener">الشروط</a> و<a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p></main>';
 }
+function greet(){var n=String((S&&S.name)||'').trim().split(/\s+/)[0];return n?'أهلاً '+esc(n):'أهلاً فيك'}
 function viewLoading(){
   return '<main class="shell auth"><div class="auth-hero">'+guil(360,170,16,48,0.05,1.1)+lockup(84)+'</div><p class="muted" style="text-align:center">'+(ui.loadFail?'تعذّر الاتصال بالسيرفر.':'جاري التحميل…')+'</p>'+(ui.loadFail?'<button class="btn block" data-act="retry-load">حاول مرة ثانية</button>':'')+'</main>';
 }
 function viewCountry(){
   var cur=S?S.country:ui.pre.country;
-  return '<main class="shell auth"><div class="top">'+lockup(30)+'</div><h1 class="step-h disp">من أي بلد أنت؟</h1>'+
+  return '<main class="shell auth"><div class="top">'+lockup(30)+'</div><p class="muted" style="margin:14px 0 0">'+greet()+'</p><h1 class="step-h disp" style="margin-top:2px">من أي بلد أنت؟</h1>'+
     '<p class="muted" style="margin:0">نضبط العملة واللهجة على بلدك.</p><div class="cgrid">'+
     Object.keys(COUNTRIES).map(function(k){var c=COUNTRIES[k];return '<button class="cbtn '+(cur===k?'on':'')+'" data-act="pick-country" data-c="'+k+'"><strong>'+c.n+'</strong><small>'+c.cn+'</small></button>'}).join('')+'</div>'+
     (S?'':'<button class="link" data-act="have-account">عندي حساب؟ سجّل دخولك</button>')+'</main>';
@@ -534,7 +531,7 @@ function viewPersona(){
   var cards=['student','employee','merchant'].map(function(p){
     return '<button class="pcard" data-act="pick" data-p="'+p+'" style="--pc:var(--'+p+')">'+guil(360,104,12,30,0.06,1)+'<span class="tx"><strong>'+pLabel(p)+'</strong><span class="d">'+P[p].tag+'</span></span></button>';
   }).join('');
-  return '<main class="shell auth"><div class="top">'+lockup(30)+'</div><h1 class="step-h disp">'+t('who')+'</h1>'+
+  return '<main class="shell auth"><div class="top">'+lockup(30)+'</div><p class="muted" style="margin:14px 0 0">'+greet()+'</p><h1 class="step-h disp" style="margin-top:2px">'+t('who')+'</h1>'+
     '<p class="muted" style="margin:0">'+t('whoSub')+'</p><div class="plist">'+cards+'</div>'+
     (S?'':'<button class="link" data-act="back-country">غيّر الدولة</button>')+'</main>';
 }
@@ -687,10 +684,13 @@ function sheetAdd(){
   return '<div class="scrim" data-act="close-sheet"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="سجّل حركة"><div class="grab"></div><h2 class="disp">'+(ed?'تعديل حركة':'سجّل حركة')+'</h2>'+q+
     '<label class="l" for="smart">'+t('writeIt')+' (تقدر تكتب أكثر من حركة)</label><div class="inl"><input class="f" id="smart" placeholder="'+ph+'">'+mic+'<button class="btn ghost" data-act="parse">افهمها</button></div><div class="hint" id="hint" aria-live="polite"></div><div id="multi"></div>'+
     (ed?'':'<button class="btn ghost small" data-act="paste-mode" style="margin-top:6px">الصق نصاً: رسالة بنك أو كشف حساب '+fb()+'</button><div id="pastewrap" style="display:none"><textarea class="f" id="paste-in" rows="5" style="margin-top:8px" placeholder="الصق هنا رسالة البنك، أو أسطراً من كشف الحساب، أو نص الفاتورة"></textarea><button class="btn block" data-act="paste-go">حلّل النص</button></div>')+
+    (ed||!CLOUD||ui.scanOff?'':'<button class="btn ghost small" data-act="scan-open" style="margin-top:6px">صوّر الفاتورة '+fb()+'</button><input type="file" id="scan-in" accept="image/*" style="display:none">')+
+    '<div id="scanbox"></div>'+
     '<div class="seg"><button data-act="set-type" data-t="exp" class="on">مصروف</button><button data-act="set-type" data-t="inc">'+incLbl+'</button></div>'+
     '<label class="l" for="f-amt">المبلغ ('+C().cur+')</label><input class="f" id="f-amt" inputmode="decimal" placeholder="0">'+
     '<div id="catwrap"><label class="l" for="f-cat">التصنيف</label><select class="f" id="f-cat">'+cs+'</select></div>'+
     '<div id="incwrap" style="display:none"><label class="l" for="f-inc">مصدر الدخل</label><select class="f" id="f-inc">'+is+'</select></div>'+
+    '<label class="l" for="f-date">التاريخ</label><input class="f" id="f-date" type="date" value="'+TODAY+'" max="'+TODAY+'">'+
     '<label class="l" for="f-note">ملاحظة (اختياري)</label><input class="f" id="f-note">'+
     '<button class="btn block" data-act="save-tx">'+(ed?'حفظ التعديل':'حفظ')+'</button></section>';
 }
@@ -729,12 +729,7 @@ function navHTML(){
 
 function route(){
   if(ui.loading||ui.loadFail){ui.screen='loading';return}
-  if(!S){
-    if(ui.returning)ui.screen='auth';
-    else if(!ui.pre.country)ui.screen='country';
-    else if(!ui.pre.persona)ui.screen='persona';
-    else ui.screen='auth';
-  }
+  if(!S)ui.screen='auth';
   else if(!S.country)ui.screen='country';
   else if(!S.persona)ui.screen='persona';
   else ui.screen='app';
@@ -831,8 +826,8 @@ function answer(q){
 function startUser(prov){
   var key=prov+':demo', u=loadUser(key);
   if(!u){
-    u={email:key,provider:prov,name:prov==='google'?'مستخدم Google':'مستخدم Apple',country:ui.pre.country||null,persona:null,tx:[],goals:[],bills:[],debts:[],ai:{date:TODAY,used:0}};
-    S=u;if(ui.pre.persona&&u.country)applySeed(ui.pre.persona);
+    u={email:key,provider:prov,name:prov==='google'?'مستخدم Google':'مستخدم Apple',country:null,persona:null,tx:[],goals:[],bills:[],debts:[],ai:{date:TODAY,used:0}};
+    S=u;
   }else S=u;
   setSession(key);saveUser();
   ui.pre={country:null,persona:null};ui.returning=false;ui.tab='home';ui.month=MONTH;ui.sheet=null;ui.chat=[];
@@ -878,7 +873,7 @@ function doParse(){
 }
 function fillEdit(){
   var x=S.tx.filter(function(z){return z.id===ui.editId})[0];if(!x)return;
-  setType(x.type);$('#f-amt').value=x.amt;$('#f-note').value=x.note||'';
+  setType(x.type);$('#f-amt').value=x.amt;$('#f-note').value=x.note||'';var fd=$('#f-date');if(fd)fd.value=x.date;
   if(x.type==='inc')$('#f-inc').value=INCATS[S.persona].indexOf(x.cat)>-1?x.cat:INCATS[S.persona][0];
   else $('#f-cat').value=PCATS[S.persona].indexOf(x.cat)>-1?x.cat:'other';
 }
@@ -898,8 +893,78 @@ function payBill(id,paid){
 function addTx(list,msg){
   var made=list.map(function(r){return {id:uid(),type:r.type,cat:r.cat,amt:r.amt,note:r.note||'',date:(r.date&&/^\d{4}-\d{2}-\d{2}$/.test(r.date))?r.date:TODAY}});
   made.forEach(function(x){S.tx.push(x)});
-  ui.sheet=null;ui.editId=null;ui.multi=[];ui.tab='home';ui.month=MONTH;saveUser();render();
+  var ms=made.map(function(x){return x.date.slice(0,7)});
+  ui.sheet=null;ui.editId=null;ui.multi=[];ui.tab='home';ui.month=ms.every(function(m){return m===ms[0]})?ms[0]:MONTH;saveUser();render();
   toast(msg,function(){var ids=made.map(function(x){return x.id});S.tx=S.tx.filter(function(x){return ids.indexOf(x.id)<0});saveUser();render()});
+}
+function pickDate(){
+  var el=$('#f-date'),v=el&&el.value;
+  if(!v||!/^\d{4}-\d{2}-\d{2}$/.test(v)||v>TODAY)return TODAY;
+  var min=new Date(now.getTime()-400*86400000),mn=min.getFullYear()+'-'+pad(min.getMonth()+1)+'-'+pad(min.getDate());
+  return v<mn?TODAY:v;
+}
+function scanMsg(t,err){var b=$('#hint');if(b){b.textContent=t;b.className='hint'+(err?' err':'')}}
+function showScanConsent(){
+  var box=$('#scanbox');if(!box)return;
+  box.innerHTML='<div class="lockbox"><h3>قبل ما تصوّر</h3><p class="fine" style="margin:0 0 8px">لما تصوّر فاتورة، بنرسل الصورة لـ Google (نموذج Gemini) عشان يقرأ المبلغ واسم المتجر. الفاتورة ممكن تحتوي معلومات شخصية (اسم، أجزاء من رقم بطاقة)، فصوّر الفاتورة فقط. ما بنحفظ الصورة عندنا. بالنسخة المجانية عند Google ممكن تستخدم الطلبات لتحسين منتجاتها. التفاصيل بـ<a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p><button class="btn block" data-act="scan-consent">موافق، صوّر</button><button class="btn ghost block" data-act="scan-decline">لا، شكراً</button></div>';
+}
+function prepareImage(file){
+  return new Promise(function(resolve,reject){
+    var fr=new FileReader();
+    fr.onerror=function(){reject({code:'read'})};
+    fr.onload=function(){
+      var img=new Image();
+      img.onerror=function(){reject({code:'read'})};
+      img.onload=function(){
+        try{
+          var best=null,tries=[[1280,0.72],[1024,0.6],[800,0.5]];
+          for(var i=0;i<tries.length;i++){
+            var sc=Math.min(1,tries[i][0]/Math.max(img.width,img.height)),w=Math.max(1,Math.round(img.width*sc)),h=Math.max(1,Math.round(img.height*sc));
+            var cv=document.createElement('canvas');cv.width=w;cv.height=h;
+            var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,w,h);cx.drawImage(img,0,0,w,h);
+            var d=cv.toDataURL('image/jpeg',tries[i][1]);best=d.slice(d.indexOf(',')+1);
+            if(best.length<1700000)return resolve(best);
+          }
+          reject({code:'big'});
+        }catch(e){reject({code:'read'})}
+      };
+      img.src=fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function applyScan(j){
+  setType('exp');
+  $('#f-amt').value=j.amount;
+  var cat=PCATS[S.persona].indexOf(j.category)>-1?j.category:'other';$('#f-cat').value=cat;
+  $('#f-note').value=j.merchant||'';
+  var fd=$('#f-date');if(fd&&j.date&&j.date<=TODAY)fd.value=j.date;
+  if(typeof j.left==='number')ui.scanLeft=j.left;
+  scanMsg('قرأت: '+fmt(j.amount)+' '+C().cur+(j.merchant?' — '+j.merchant:'')+(j.date?' — '+j.date:'')+'. راجع وعدّل إذا لزم ثم احفظ.'+(typeof j.left==='number'?' (متبقي '+j.left+' فواتير اليوم)':''));
+}
+function scanFile(file){
+  if(!file||ui.scanning)return;
+  ui.scanning=true;scanMsg('جاري قراءة الفاتورة…');
+  var cats=PCATS[S.persona].map(function(k){return {k:k,n:CATS[k].n}});
+  prepareImage(file).then(function(b64){
+    return Promise.resolve(sb.auth.getSession()).then(function(r){
+      var ss=r&&r.data&&r.data.session;if(!ss)throw {code:'auth'};
+      return fetch('/api/scan',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ss.access_token},body:JSON.stringify({image:b64,mime:'image/jpeg',currency:C().cn,categories:cats})});
+    });
+  }).then(function(resp){
+    return resp.json().catch(function(){return {}}).then(function(j){return {status:resp.status,j:j||{}}});
+  }).then(function(o){
+    var j=o.j;
+    if(o.status===200&&typeof j.amount==='number'){applyScan(j);return}
+    if(o.status===422){scanMsg('ما قدرت أقرأ الفاتورة. جرّب صورة أوضح وقريبة، والفاتورة كاملة بالإطار.',true);return}
+    if(o.status===429){scanMsg(j.reason==='global'?'قراءة الفواتير مشغولة اليوم. جرّب بكرة، أو اكتب المبلغ يدوي.':'خلص حدك اليومي لقراءة الفواتير. بيتجدد بكرة.',true);return}
+    if(o.status===503&&j.error==='ai_not_configured'){ui.scanOff=true;scanMsg('قراءة الفواتير غير مفعّلة حالياً.',true);return}
+    if(o.status===401){scanMsg('انتهت جلستك. سجّل دخولك من جديد.',true);return}
+    if(o.status===503||o.status===502){scanMsg('الخدمة مشغولة لحظة. جرّب بعد دقيقة.',true);return}
+    scanMsg('صار خطأ. جرّب مرة ثانية.',true);
+  }).catch(function(e){
+    scanMsg(e&&e.code==='big'?'الصورة كبيرة كتير. جرّب صورة أصغر.':e&&e.code==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':e&&e.code==='read'?'ما قدرت أفتح الصورة.':'تعذّر الاتصال. جرّب مرة ثانية.',true);
+  }).then(function(){ui.scanning=false});
 }
 function fb(){return '<span class="fbadge">مجاني الآن</span>'}
 function launchBanner(){
@@ -1048,6 +1113,12 @@ document.addEventListener('click',function(e){
   }
   if(a==='edit-tx'){ui.editId=id;ui.multi=[];ui.sheet='add';render();fillEdit();return}
   if(a==='toggle-all'){ui.showAll=!ui.showAll;render();return}
+  if(a==='scan-open'){
+    if(S.scanConsent===true){var fi=$('#scan-in');if(fi)fi.click();return}
+    showScanConsent();return;
+  }
+  if(a==='scan-consent'){S.scanConsent=true;saveUser();var bx=$('#scanbox');if(bx)bx.innerHTML='';var fi2=$('#scan-in');if(fi2)fi2.click();return}
+  if(a==='scan-decline'){var bx2=$('#scanbox');if(bx2)bx2.innerHTML='';return}
   if(a==='ai-consent'){S.aiConsent=true;saveUser();render();return}
   if(a==='ai-decline'){S.aiConsent=false;saveUser();render();return}
   if(a==='hide-banner'){S.hideBanner=true;saveUser();render();return}
@@ -1057,13 +1128,13 @@ document.addEventListener('click',function(e){
   if(a==='save-tx'){
     var v=toNum($('#f-amt').value);
     if(isNaN(v)||v<=0){$('#hint').textContent='اكتب مبلغاً صحيحاً.';return}
-    var tp=ui.addType, ct=tp==='inc'?$('#f-inc').value:$('#f-cat').value, nt=$('#f-note').value.trim();
+    var tp=ui.addType, ct=tp==='inc'?$('#f-inc').value:$('#f-cat').value, nt=$('#f-note').value.trim(), dv=pickDate();
     if(ui.editId){
       var ex0=S.tx.filter(function(z){return z.id===ui.editId})[0];
-      if(ex0){ex0.type=tp;ex0.cat=ct;ex0.amt=v;ex0.note=nt}
+      if(ex0){ex0.type=tp;ex0.cat=ct;ex0.amt=v;ex0.note=nt;ex0.date=dv}
       ui.editId=null;ui.sheet=null;saveUser();render();toast('تم التعديل');return;
     }
-    addTx([{type:tp,cat:ct,amt:v,note:nt}],'تم الحفظ');return;
+    addTx([{type:tp,cat:ct,amt:v,note:nt,date:dv}],'تم الحفظ');return;
   }
   if(a==='del-tx'){
     var gone=S.tx.filter(function(x){return x.id===id})[0];if(!gone)return;
@@ -1141,6 +1212,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
   var el=e.target;
+  if(el&&el.id==='scan-in'){var f=el.files&&el.files[0];if(f)scanFile(f);try{el.value=''}catch(x){}return}
   if(el.getAttribute&&el.getAttribute('data-act')==='bill-toggle'){
     payBill(el.getAttribute('data-id'),el.checked);
   }
