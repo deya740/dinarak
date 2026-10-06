@@ -327,7 +327,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -374,6 +374,18 @@ function pushCloud(){
     cloud.failed=false;
   }).catch(function(){cloud.dirty=true;if(!cloud.failed){cloud.failed=true;toast('تعذّر الحفظ بالسحابة، بنحاول مرة ثانية.')}});
 }
+function cleanData(u){
+  var isNum=function(n){return typeof n==='number'&&isFinite(n)};
+  if(!COUNTRIES[u.country])u.country=null;
+  if(!PCATS[u.persona])u.persona=null;
+  u.tx=(Array.isArray(u.tx)?u.tx:[]).filter(function(x){return x&&(x.type==='inc'||x.type==='exp')&&isNum(x.amt)&&typeof x.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)}).map(function(x){
+    var o={id:String(x.id||uid()),type:x.type,cat:CATS[x.cat]?x.cat:(x.type==='inc'?'otherinc':'other'),amt:x.amt,note:String(x.note||'').slice(0,200),date:x.date};
+    if(x.billId)o.billId=String(x.billId);return o});
+  u.goals=(Array.isArray(u.goals)?u.goals:[]).filter(function(g){return g&&isNum(g.target)&&g.target>0&&isNum(g.saved)}).map(function(g){return {id:String(g.id||uid()),name:String(g.name||'').slice(0,80),target:g.target,saved:g.saved}});
+  u.bills=(Array.isArray(u.bills)?u.bills:[]).filter(function(b){return b&&isNum(b.amt)&&isNum(b.day)}).map(function(b){return {id:String(b.id||uid()),name:String(b.name||'').slice(0,80),amt:b.amt,day:b.day,paid:!!b.paid}});
+  u.debts=(Array.isArray(u.debts)?u.debts:[]).filter(function(d){return d&&isNum(d.owed)}).map(function(d){return {id:String(d.id||uid()),name:String(d.name||'').slice(0,80),owed:d.owed}});
+  return u;
+}
 function cloudSignedIn(user){
   cloud.uid=user.id;ui.loading=true;ui.loadFail=false;render();
   Promise.resolve(sb.from('user_data').select('data').eq('user_id',user.id).maybeSingle()).then(function(r){
@@ -389,7 +401,7 @@ function cloudSignedIn(user){
     ls(function(){localStorage.removeItem(PKEY)});
     u.email=user.email||'';u.provider=(user.app_metadata&&user.app_metadata.provider)||'google';
     if(!u.name)u.name=(user.user_metadata&&(user.user_metadata.full_name||user.user_metadata.name))||'';
-    ['tx','goals','bills','debts'].forEach(function(k){if(!Array.isArray(u[k]))u[k]=[]});
+    u=cleanData(u);
     if(!u.ai)u.ai={date:TODAY,used:0};
     S=u;ui.pre={country:null,persona:null};ui.returning=false;ui.tab='home';ui.month=MONTH;ui.chat=[];ui.loading=false;
     if(!d)saveUser();
@@ -445,7 +457,7 @@ function stats(ym,cap){
   var inc=0,exp=0,by={},incBy={},todayInc=0,days={},big=null;
   m.forEach(function(x){
     if(x.type==='inc'){inc+=x.amt;incBy[x.cat]=(incBy[x.cat]||0)+x.amt;if(x.date===TODAY)todayInc+=x.amt}
-    else{exp+=x.amt;by[x.cat]=(by[x.cat]||0)+x.amt;days[x.date]=(days[x.date]||0)+x.amt;if(!big||x.amt>big.amt)big=x}
+    else{var ck=CATS[x.cat]?x.cat:'other';exp+=x.amt;by[ck]=(by[ck]||0)+x.amt;days[x.date]=(days[x.date]||0)+x.amt;if(!big||x.amt>big.amt)big={note:x.note,amt:x.amt,cat:ck}}
   });
   var cats=Object.keys(by).map(function(k){return {k:k,v:by[k]}}).sort(function(a,b){return b.v-a.v});
   var pk=null;Object.keys(days).forEach(function(d){if(!pk||days[d]>pk.v)pk={d:d,v:days[d]}});
@@ -614,18 +626,27 @@ var QS={
 };
 function usedToday(){if(S.ai.date!==TODAY){S.ai={date:TODAY,used:0}}return S.ai.used}
 function viewAdvisor(){
-  var left=DAILY_LIMIT-usedToday(), dis=(left<=0||ui.busy)?'disabled':'';
+  var cloudAI=CLOUD&&S.aiConsent===true&&!ui.aiOff;
+  var left=cloudAI?(ui.aiLeft==null?DAILY_LIMIT:ui.aiLeft):DAILY_LIMIT-usedToday();
+  var dis=(left<=0||ui.busy)?'disabled':'';
   var chips=QS[S.persona].map(function(q){return '<button class="qchip" data-act="ask-chip" data-q="'+q+'" '+dis+'>'+t('q_'+q)+'</button>'}).join('');
   var msgs=ui.chat.map(function(m){return '<div class="m '+m.r+'"'+(m.live?' id="live"':'')+'>'+esc(m.t||(m.live?t('thinking'):''))+'</div>'}).join('');
-  var note=ui.sample?'المدير المالي هنا هو Claude فعلاً: الأرقام محسوبة بالكود من حركاتك، وClaude يفسّرها ويجاوب أسئلتك.':'المدير المالي الذكي (السؤال الحر) قيد التجهيز. حالياً الأسئلة الجاهزة فقط، وكلها محسوبة من حركاتك.';
-  return '<main class="shell">'+topbar()+'<h2 class="sec disp">المدير المالي '+fb()+'</h2>'+
-    '<span class="pill">متبقي '+left+' من '+DAILY_LIMIT+' أسئلة اليوم</span> <span class="pill">'+monthName(ui.month)+'</span>'+
+  var head='<main class="shell">'+topbar()+'<h2 class="sec disp">المدير المالي '+fb()+'</h2>';
+  if(CLOUD&&S.aiConsent===undefined&&!ui.aiOff){
+    return head+'<div class="lockbox"><h3>قبل ما تسأل</h3><p class="fine" style="margin:0 0 8px">لما تسأل المدير المالي، بنرسل لـ Google (نموذج Gemini) <b>ملخص أرقام شهرك فقط</b> (المجاميع والتصنيفات). ما بنرسل أسماء ولا ملاحظات الحركات ولا أسماء الزبائن. بالنسخة المجانية عند Google، ممكن تستخدم الطلبات لتحسين منتجاتها. التفاصيل بـ<a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p>'+
+      '<button class="btn block" data-act="ai-consent">موافق، فعّل المدير الذكي</button><button class="btn ghost block" data-act="ai-decline">لا، أستخدم الأسئلة الجاهزة محلياً</button></div></main>';
+  }
+  var note=cloudAI?'المدير المالي هنا نموذج Gemini من Google. الأرقام محسوبة بالكود من حركاتك، وبنرسله ملخصاً بدون أسماء أو ملاحظات.':(CLOUD&&S.aiConsent===false?'الأسئلة الجاهزة تُحسب على جهازك فقط ولا يُرسل شي لأي جهة.':'المدير المالي الذكي (السؤال الحر) قيد التجهيز. حالياً الأسئلة الجاهزة فقط، وكلها محسوبة من حركاتك.');
+  var pill=(cloudAI&&ui.aiLeft==null)?'حتى '+DAILY_LIMIT+' أسئلة اليوم':'متبقي '+left+' من '+DAILY_LIMIT+' أسئلة اليوم';
+  var canType=!(CLOUD&&S.aiConsent===false);
+  return head+'<span class="pill">'+pill+'</span> <span class="pill">'+monthName(ui.month)+'</span>'+
     '<p class="fine">'+note+'</p>'+
-    '<div class="msgs" id="msgs">'+(msgs||'<div class="empty">اكتب سؤالك أو اختر اقتراحاً.</div>')+'</div>'+
-    (left<=0?'<p class="fine" style="color:var(--bad)">انتهى حدك اليومي. الخطة المدفوعة (لاحقاً) تفتحه بلا حدود.</p>':'')+
-    '<div class="inl"><input class="f" id="q-in" maxlength="300" placeholder="'+t('askPh')+'" value="'+esc(ui.draft)+'" '+dis+'>'+
-    (ui.busy?'<button class="btn ghost" data-act="ask-stop">إيقاف</button>':'<button class="btn" data-act="ask-send" '+dis+'>اسأل</button>')+'</div>'+
-    '<p class="fine" style="margin:12px 0 6px">اقتراحات:</p><div class="chips">'+chips+'</div></main>';
+    '<div class="msgs" id="msgs">'+(msgs||'<div class="empty">'+(canType?'اكتب سؤالك أو اختر اقتراحاً.':'اختر سؤالاً من الاقتراحات.')+'</div>')+'</div>'+
+    (left<=0?'<p class="fine" style="color:var(--bad)">انتهى حدك اليومي. بيتجدد بكرة.</p>':'')+
+    (canType?'<div class="inl"><input class="f" id="q-in" maxlength="300" placeholder="'+t('askPh')+'" value="'+esc(ui.draft)+'" '+dis+'>'+
+    (ui.busy?'<button class="btn ghost" data-act="ask-stop">إيقاف</button>':'<button class="btn" data-act="ask-send" '+dis+'>اسأل</button>')+'</div>':'')+
+    '<p class="fine" style="margin:12px 0 6px">اقتراحات:</p><div class="chips">'+chips+'</div>'+
+    (CLOUD&&S.aiConsent===false?'<button class="link" data-act="ai-consent">فعّل المدير الذكي (Gemini)</button>':'')+'</main>';
 }
 
 function viewAccount(){
@@ -1027,6 +1048,8 @@ document.addEventListener('click',function(e){
   }
   if(a==='edit-tx'){ui.editId=id;ui.multi=[];ui.sheet='add';render();fillEdit();return}
   if(a==='toggle-all'){ui.showAll=!ui.showAll;render();return}
+  if(a==='ai-consent'){S.aiConsent=true;saveUser();render();return}
+  if(a==='ai-decline'){S.aiConsent=false;saveUser();render();return}
   if(a==='hide-banner'){S.hideBanner=true;saveUser();render();return}
   if(a==='paste-mode'){var pw=$('#pastewrap');if(pw){pw.style.display=pw.style.display==='none'?'':'none';var pi=$('#paste-in');if(pi&&pw.style.display==='')pi.focus()}return}
   if(a==='paste-go'){pasteGo();return}
@@ -1169,14 +1192,63 @@ function matchQ(x){
   for(var i=0;i<m.length;i++){if(m[i][1].test(n)&&QS[S.persona].indexOf(m[i][0])>-1)return m[i][0]}
   return null;
 }
+function ctxSafe(){
+  var ym=ui.month,isCur=ym===MONTH,s=stats(ym),prev=ymAdd(ym,-1),pv=stats(prev,isCur?DAY:0);
+  var o={country:C().n,currency:C().cn,persona:S.persona,month:monthName(ym),is_current_month:isCur,
+    day_of_month:isCur?DAY:dim(ym),days_in_month:dim(ym),income_total:r2(s.inc),expenses_total:r2(s.exp),remaining:r2(s.rem),
+    expenses_by_category:s.cats.map(function(c){return {category:CATS[c.k].n,amount:r2(c.v),percent_of_expenses:Math.round(c.v/s.exp*100)}}),
+    income_sources:Object.keys(s.incBy).map(function(k){return {source:(CATS[k]||CATS.income).n,amount:r2(s.incBy[k])}}),
+    previous_month_same_period:{month:monthName(prev),income:r2(pv.inc),expenses:r2(pv.exp)},
+    biggest_expense:s.big?{category:(CATS[s.big.cat]||CATS.other).n,amount:r2(s.big.amt)}:null,
+    peak_spending_day:s.peak?{date:s.peak.d,amount:r2(s.peak.v)}:null};
+  if(isCur){o.projected_month_end_expenses=r2(s.exp/DAY*dim(ym));if(S.persona==='student')o.daily_budget_until_month_end=r2(dailyBudget(s))}
+  if(S.persona==='employee')o.commitments=S.bills.map(function(b,i){return {n:i+1,amount:r2(b.amt),due_day:b.day,paid:!!b.paid}});
+  if(S.persona==='merchant'){var dt=S.debts.reduce(function(a,d){return a+d.owed},0),mx=S.debts.reduce(function(a,d){return Math.max(a,d.owed)},0);o.customer_debts={count:S.debts.length,total:r2(dt),largest:r2(mx)}}
+  if(S.persona==='student')o.goals=S.goals.map(function(g,i){return {n:i+1,target:r2(g.target),saved:r2(g.saved)}});
+  return o;
+}
+function histPairs(){
+  var c=ui.chat.slice(0,-2),out=[];
+  for(var i=0;i<c.length-1;i++){if(c[i].r==='u'&&c[i+1].r==='a'&&!c[i+1].err&&c[i+1].t)out.push({q:c[i].t,a:c[i+1].t})}
+  return out.slice(-2);
+}
+function askCloud(text,qkey){
+  ui.chat.push({r:'a',t:'',live:true});
+  var idx=ui.chat.length-1;
+  ui.busy=true;ui.draft='';ui.ctl=new AbortController();render();
+  var hist=histPairs(), payload={question:text,context:ctxSafe(),history:hist,dialect:D(),currency:C().cn}, sig=ui.ctl.signal;
+  Promise.resolve(sb.auth.getSession()).then(function(r){
+    var ss=r&&r.data&&r.data.session;if(!ss)throw {code:'auth'};
+    return fetch('/api/ask',{method:'POST',signal:sig,headers:{'Content-Type':'application/json','Authorization':'Bearer '+ss.access_token},body:JSON.stringify(payload)});
+  }).then(function(resp){
+    return resp.json().catch(function(){return {}}).then(function(j){return {status:resp.status,j:j||{}}});
+  }).then(function(o){
+    var j=o.j, m=ui.chat[idx];delete m.live;
+    if(o.status===200&&j.text){m.t=String(j.text).trim();if(typeof j.left==='number')ui.aiLeft=j.left;return}
+    m.err=true;
+    if(o.status===429){
+      if(j.reason==='global'){m.t='المدير المالي مشغول اليوم لأنه كثير ناس استخدموه. جرّب بكرة، أو استخدم الأسئلة الجاهزة.'}
+      else{ui.aiLeft=0;m.t='خلص حدك اليومي ('+DAILY_LIMIT+' أسئلة). بيتجدد بكرة.'}
+    }else if(o.status===503&&j.error==='ai_not_configured'){
+      ui.aiOff=true;var key=qkey||matchQ(text);
+      m.t=key?answer(key):'المدير الذكي غير مفعّل حالياً. جرّب الأسئلة الجاهزة، وبعد شوي جرّب السؤال الحر.';m.err=!key;
+    }else if(o.status===503&&j.error==='ai_busy'){m.t='المدير المالي مشغول لحظة. جرّب بعد دقيقة.'}
+    else if(o.status===401){m.t='انتهت جلستك. سجّل دخولك من جديد.'}
+    else{m.t='صار خطأ بالمدير المالي، جرّب بعد شوي.'}
+  }).catch(function(e){
+    var m=ui.chat[idx];if(!m)return;delete m.live;m.err=true;
+    m.t=(e&&e.name==='AbortError')?'تم الإيقاف.':(e&&e.code==='auth')?'انتهت جلستك. سجّل دخولك من جديد.':'تعذّر الاتصال. تأكد من الإنترنت وجرّب مرة ثانية.';
+  }).then(function(){ui.busy=false;ui.ctl=null;render();var mm=$('#msgs');if(mm&&mm.lastElementChild&&mm.lastElementChild.scrollIntoView)mm.lastElementChild.scrollIntoView({block:'center'})});
+}
 function ask(text,qkey){
   text=String(text||'').trim().slice(0,300);
   if(ui.busy||!text||usedToday()>=DAILY_LIMIT)return;
   ui.chat.push({r:'u',t:text});
+  if(CLOUD&&S.aiConsent===true&&!ui.aiOff){askCloud(text,qkey);return}
   var fn=ui.sample;
   if(!fn){
     var key=qkey||matchQ(text);
-    ui.chat.push({r:'a',t:key?answer(key):'هذه النسخة خارج Claude تجاوب على الأسئلة الجاهزة فقط. بالنسخة الحقيقية تسأل أي سؤال عن فلوسك.',err:!key});
+    ui.chat.push({r:'a',t:key?answer(key):'السؤال الحر غير متاح حالياً. جرّب الأسئلة الجاهزة.',err:!key});
     if(key){S.ai.used++;saveUser()}
     ui.draft='';render();return;
   }
