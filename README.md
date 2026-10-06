@@ -7,3 +7,4 @@
 - manifest.webmanifest + icon-*.png + _headers: تثبيت التطبيق وأمان بسيط
 
 لا يوجد بناء (build).
+. 
