@@ -358,7 +358,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,metalEdit:null,metalWarnKey:null,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -1431,7 +1431,7 @@ function metalCalc(list,pr,adj){
   return {rows:rows,tot:tot};
 }
 function metalLabel(h){return h.metal==='gold'?'ذهب عيار '+h.purity:'فضة '+h.purity}
-function plHTML(pl,pct,code){return '<span class="'+(pl>=0?'pos':'neg')+'">'+moneyCode(Math.abs(pl),code,pl>=0?'+':'−')+(pct!==null?' ('+(pl>=0?'+':'−')+Math.abs(pct).toFixed(1)+'%)':'')+'</span>'}
+function plHTML(pl,pct,code){return '<span class="'+(pl>=0?'pos':'neg')+'">'+moneyCode(Math.abs(pl),code,pl>=0?'+':'−')+(pct!==null?' <bdi dir="ltr">('+(pl>=0?'+':'−')+Math.abs(pct).toFixed(1)+'%)</bdi>':'')+'</span>'}
 function ensurePrices(force){
   var fresh=ui.prices&&(Date.now()-ui.pricesTs<300000);
   if(ui.pricesBusy||(!force&&fresh))return;
@@ -1472,15 +1472,15 @@ function sheetMetals(){
   h+=c.rows.map(function(r){
     var x=r.h;
     return '<div class="row-i" style="display:block"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-weight:600">'+metalLabel(x)+' · '+Number(x.grams).toFixed(2)+' غرام</b><button class="x del" data-act="metal-del" data-id="'+x.id+'" aria-label="حذف">'+icon('trash')+'</button></div>'+
-      '<small class="fine">دفعت '+moneyCode(x.cost,x.cur)+(x.grams>0?' (الغرام '+moneyCode(x.cost/x.grams,x.cur)+')':'')+' · '+esc(x.date)+(x.note?' · '+esc(x.note):'')+'</small>'+
+      '<div class="chips" style="margin:4px 0"><button class="btn ghost small" data-act="metal-edit" data-id="'+x.id+'">تعديل</button></div><small class="fine">دفعت '+moneyCode(x.cost,x.cur)+(x.grams>0?' (الغرام '+moneyCode(x.cost/x.grams,x.cur)+')':'')+' · '+esc(x.date)+(x.note?' · '+esc(x.note):'')+'</small>'+
       (r.val===null?'<div class="fine">السعر غير متاح لعملة هالشراء حالياً.</div>':'<div>قيمته اليوم '+moneyCode(r.val,x.cur)+' · '+plHTML(r.pl,r.pct,x.cur)+'</div>')+'</div>';
   }).join('')||'<div class="empty">ما أضفت أي ذهب أو فضة بعد.</div>';
-  h+='<h3 style="margin:16px 0 4px;font-size:18px">أضف ذهب أو فضة</h3>'+
+  h+='<h3 style="margin:16px 0 4px;font-size:18px">'+(ui.metalEdit?'تعديل الشراء':'أضف ذهب أو فضة')+'</h3>'+
     '<div class="inl"><div style="flex:1"><label class="l" for="m-metal">النوع</label><select class="f" id="m-metal" data-act="metal-kind"><option value="gold">ذهب</option><option value="silver">فضة</option></select></div><div style="flex:1"><label class="l" for="m-purity">العيار</label><select class="f" id="m-purity">'+purityOptions('gold',21)+'</select></div></div>'+
     '<div class="inl"><div style="flex:1"><label class="l" for="m-grams">الوزن</label><input class="f" id="m-grams" inputmode="decimal" placeholder="مثلاً 25"></div><div style="flex:1"><label class="l" for="m-unit">بوحدة</label><select class="f" id="m-unit"><option value="g">غرام</option><option value="oz">أونصة</option></select></div></div>'+
     '<div class="inl"><div style="flex:1"><label class="l" for="m-cost">إجمالي اللي دفعته</label><input class="f" id="m-cost" inputmode="decimal" placeholder="0.000"></div><div style="flex:1"><label class="l" for="m-cur">بعملة</label><select class="f" id="m-cur">'+curOpts(mine)+'</select></div></div>'+
     '<label class="l" for="m-date">تاريخ الشراء</label><input class="f" id="m-date" type="date" value="'+TODAY+'" max="'+TODAY+'"><label class="l" for="m-note">ملاحظة (اختياري)</label><input class="f" id="m-note" maxlength="60" placeholder="مثلاً: سلسال، سبيكة">'+
-    '<button class="btn block" data-act="metal-add">أضف</button>'+
+    '<div id="m-warn" class="chk warn" style="display:none" aria-live="polite"></div><button class="btn block" id="m-save" data-act="metal-add">'+(ui.metalEdit?'احفظ التعديل':'أضف')+'</button>'+(ui.metalEdit?'<button class="btn ghost block" data-act="metal-edit-cancel">إلغاء التعديل</button>':'')+
     '<h3 style="margin:16px 0 4px;font-size:18px">تعديل السعر ليطابق محلك</h3><div class="inl" style="align-items:center"><input class="f" data-act="metal-adj" inputmode="decimal" dir="ltr" style="max-width:110px;text-align:start" value="'+adj+'" aria-label="نسبة التعديل"><span class="fine" style="flex:1">% (مثلاً −3 إذا الصايغ بيشتري بأقل من السعر العالمي)</span></div>'+
     '<p class="fine" style="margin-top:14px">الأسعار تقديرية: السعر العالمي للذهب والفضة محوّل لعملتك. سعر الصايغ عندك قد يختلف بسبب المصنعية وفرق الشراء والبيع، والمصنعية اللي دفعتها ما بترجع عند البيع. المعلومات للمتابعة فقط وليست نصيحة استثمارية.</p>';
   return '<div class="scrim" data-act="metal-close"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="ذهبي وفضتي"><div class="grab"></div><h2 class="disp">ذهبي وفضتي '+fb()+'</h2>'+h+'</section>';
@@ -1827,21 +1827,47 @@ document.addEventListener('click',function(e){
     setSession(null);S=null;ui.returning=true;ui.pre={country:null,persona:null};ui.sheet=null;ui.chat=[];render();return;
   }
   if(a==='metal-open'){ui.sheet='metals';ui.pricesTried=true;render();ensurePrices();return}
-  if(a==='metal-close'){ui.sheet=null;render();return}
+  if(a==='metal-close'){ui.sheet=null;ui.metalEdit=null;ui.metalWarnKey=null;render();return}
   if(a==='metal-refresh'){ensurePrices(true);render();return}
   if(a==='metal-del'){
     var mh=(S.metals||[]).filter(function(x){return x.id===id})[0];if(!mh)return;
     S.metals=S.metals.filter(function(x){return x.id!==id});saveUser();render();
     toast('تم حذف '+metalLabel(mh),function(){S.metals.push(mh);saveUser();render()});return;
   }
+  if(a==='metal-edit'){
+    var eh=(S.metals||[]).filter(function(x){return x.id===id})[0];if(!eh)return;
+    ui.metalEdit=id;ui.metalWarnKey=null;render();
+    var kk=function(q,v){var e=$(q);if(e)e.value=v};
+    kk('#m-metal',eh.metal);var pu=$('#m-purity');if(pu)pu.innerHTML=purityOptions(eh.metal,eh.purity);
+    kk('#m-purity',String(eh.purity));kk('#m-grams',String(eh.grams));kk('#m-unit','g');kk('#m-cost',String(eh.cost));kk('#m-cur',eh.cur);kk('#m-date',eh.date);kk('#m-note',eh.note||'');return;
+  }
+  if(a==='metal-edit-cancel'){ui.metalEdit=null;ui.metalWarnKey=null;render();return}
   if(a==='metal-add'){
     var mt=$('#m-metal').value==='silver'?'silver':'gold',mp=parseInt($('#m-purity').value,10),mu=$('#m-unit').value==='oz'?OZG:1;
     var mg=toNum($('#m-grams').value)*mu,mc=toNum($('#m-cost').value),mcur=MCODES.indexOf($('#m-cur').value)>-1?$('#m-cur').value:(CCODE[S.country]||'JOD');
     if(!(mg>=0.01&&mg<=1000000)){toast('اكتب الوزن');return}
     if(isNaN(mc)||mc<0){toast('اكتب المبلغ اللي دفعته');return}
+    mg=Math.round(mg*1000)/1000;
+    var pgNow=metalPerGram(ui.prices,mt,mp,mcur,0);
+    if(pgNow&&mc>0){
+      var ratio=(mc/mg)/pgNow,wkey=[mt,mp,mg,mc,mcur].join('|');
+      if((ratio>2.5||ratio<0.4)&&ui.metalWarnKey!==wkey){
+        ui.metalWarnKey=wkey;
+        var wb=$('#m-warn');if(wb){wb.style.display='';wb.textContent='تأكد من الوزن والمبلغ: يعني الغرام اشتريته بـ '+fmtCode(mc/mg,mcur)+' '+codeInfo(mcur).cur+'، بينما سعر الغرام اليوم تقريباً '+fmtCode(pgNow,mcur)+'. إذا مظبوط اضغط مرة ثانية.'}
+        var sb2=$('#m-save');if(sb2)sb2.textContent='صح، احفظ على كل حال';
+        return;
+      }
+    }
     var md=$('#m-date').value;if(!/^\d{4}-\d{2}-\d{2}$/.test(md)||md>TODAY)md=TODAY;
-    if(!S.metals)S.metals=[];if(S.metals.length>=100){toast('وصلت للحد الأقصى (100)');return}
-    S.metals.push({id:uid(),metal:mt,purity:mp,grams:Math.round(mg*1000)/1000,cost:mc,cur:mcur,date:md,note:String($('#m-note').value||'').trim().slice(0,60)});
+    if(!S.metals)S.metals=[];
+    var rec={metal:mt,purity:mp,grams:mg,cost:mc,cur:mcur,date:md,note:String($('#m-note').value||'').trim().slice(0,60)};
+    if(ui.metalEdit){
+      var ex=S.metals.filter(function(x){return x.id===ui.metalEdit})[0];
+      if(ex)Object.keys(rec).forEach(function(k){ex[k]=rec[k]});
+      ui.metalEdit=null;ui.metalWarnKey=null;saveUser();render();toast('تم حفظ التعديل');return;
+    }
+    if(S.metals.length>=100){toast('وصلت للحد الأقصى (100)');return}
+    rec.id=uid();S.metals.push(rec);ui.metalWarnKey=null;
     saveUser();render();ensurePrices();toast('تمت الإضافة');return;
   }
   if(a==='split-open'){ui.sheet='split';ui.split={phase:'start'};render();return}
