@@ -186,6 +186,7 @@ nav.nav .add svg{stroke:var(--accent-ink);width:26px;height:26px}
 .srow .ssel{grid-column:2 / -1;padding:6px 10px;font-size:14px;border-radius:10px}
 .srow input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
 .flag{background:var(--accent-soft);border-radius:999px;padding:0 8px;font-size:11.5px;color:var(--ink)}
+.flag.warn{background:color-mix(in srgb,var(--bad) 20%,var(--surface))}
 .chk{border-radius:12px;padding:8px 12px;font-size:14px;margin:8px 0;border:1.5px solid var(--line)}
 .chk.ok{border-color:var(--good);color:var(--good)}
 .chk.warn{border-color:var(--bad);color:var(--bad)}
@@ -337,7 +338,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -666,8 +667,9 @@ function viewAccount(){
     '<section class="blk"><div class="row-i"><div class="t"><b>الشخصية</b><small>'+pLabel(S.persona)+' — '+P[S.persona].tag+'</small></div></div>'+
     '<p class="fine">'+(CLOUD?'غيّر شخصيتك (بياناتك تبقى كما هي):':'جرّب شخصية ثانية (بالنموذج الأولي تُستبدل البيانات الوهمية):')+'</p><div class="chips">'+
     others.map(function(o){return '<button class="btn ghost small" data-act="switch" data-p="'+o+'">'+pLabel(o)+'</button>'}).join('')+'</div></section>'+
+    '<section class="blk"><h2 class="sec disp">بياناتي</h2><p class="fine" style="margin-top:-4px">نسختك بإيدك. نزّل حركاتك بأي وقت.</p><div class="chips"><button class="btn ghost small" data-act="export-csv">تصدير الحركات (Excel / CSV)</button><button class="btn ghost small" data-act="export-json">نسخة كاملة (JSON)</button></div></section>'+
     '<section class="blk"><h2 class="sec disp">سجلّك وخصوصيتك</h2><ul class="plain"><li>سجلّك الشهري يبقى محفوظاً ما دام حسابك موجوداً، ولا يُحذف تلقائياً.</li><li>تقرير كل شهر مجاني دائماً.</li><li>ما نطلب بيانات دخول البنك أبداً.</li><li><a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a> · <a href="terms.html" target="_blank" rel="noopener">الشروط</a></li></ul>'+
-    '<button class="btn danger block" data-act="del-account">'+(ui.accArm?'تأكيد: احذف كل بياناتي نهائياً':'احذف كل بياناتي')+'</button></section>'+
+    '<button class="btn danger block" data-act="del-account" '+(ui.accDeleting?'disabled':'')+'>'+(ui.accDeleting?'جاري الحذف…':ui.accArm?'تأكيد: احذف حسابي وكل بياناتي نهائياً':'احذف حسابي وكل بياناتي')+'</button>'+(ui.accArm&&!ui.accDeleting?'<p class="hint err" style="margin-top:8px">هالإجراء نهائي: بيمسح حسابك وكل حركاتك وما بنقدر نرجعها. نزّل نسخة من بياناتك أول إذا بدك.</p>':'')+'<p class="fine" style="margin-top:8px"><a href="delete-account.html" target="_blank" rel="noopener">كيف يتم حذف الحساب</a></p></section>'+
     '<section class="blk"><h2 class="sec disp">الخطط</h2><div class="banner"><span class="fbadge">فترة الإطلاق</span><span>كل ما يلي مجاني الآن. كل ميزة بعلامة "مجاني الآن" ستنضم لاحقاً للخطة المدفوعة.</span></div>'+
     '<div class="row-i"><div class="t"><b>سجل الحركات وتقرير كل شهر</b><small>يبقى مجانياً دائماً</small></div><span class="fbadge">مجاني دائماً</span></div>'+
     '<div class="row-i"><div class="t"><b>المدير المالي (Claude)</b><small>حتى '+DAILY_LIMIT+' أسئلة باليوم، وبلا حدود لاحقاً بالمدفوعة</small></div>'+fb()+'</div>'+
@@ -934,7 +936,7 @@ function stmtRows(j){
     var fp=(key+'#'+seen[key]).slice(0,140);
     var cat=(type==='exp'?cp:ci).indexOf(t.category)>-1?t.category:(type==='exp'?'other':'otherinc');
     var dup=!!have[fp];
-    return {date:t.date,desc:t.description,amt:t.amount,type:type,cat:cat,transfer:!!t.transfer,dup:dup,sel:!dup&&!t.transfer,fp:fp};
+    return {date:t.date,desc:t.description,amt:t.amount,type:type,cat:cat,transfer:!!t.transfer,dup:dup,fixed:t.fixed||null,suspect:!!t.suspect,sel:!dup&&!t.transfer&&!t.suspect,fp:fp};
   });
 }
 function stmtRun(extra){
@@ -982,9 +984,15 @@ function sheetStmt(){
   }else if(st.phase==='review'){
     var rows=st.rows, cur=CCODE[S.country]||'', notes='';
     if(st.period&&(st.period.from||st.period.to))notes+='<p class="fine" style="margin:0">الفترة: '+esc(st.period.from||'؟')+' إلى '+esc(st.period.to||'؟')+'</p>';
-    if(st.check){
-      notes+=st.check.ok?'<div class="chk ok">الأرصدة متطابقة: رصيد البداية + الحركات = رصيد النهاية.</div>':
-        '<div class="chk warn">فرق '+fmt(Math.abs(st.check.diff))+' '+C().cur+' بين رصيد النهاية ومجموع الحركات. ممكن في حركات ناقصة أو زايدة، راجع القائمة.</div>';
+    var ck=st.check;
+    if(ck&&ck.mode==='running'){
+      if(ck.opening!==null&&ck.opening!==undefined&&ck.closing!==null&&ck.closing!==undefined)notes+='<p class="fine" style="margin:0">رصيد البداية '+fmt(ck.opening)+' ← رصيد النهاية '+fmt(ck.closing)+' '+C().cur+'</p>';
+      if(ck.suspect>0)notes+='<div class="chk warn">'+ck.suspect+' حركة ما تطابقت مع الرصيد الجاري (ممكن في حركة ناقصة قبلها). عليها علامة "راجع" وانلغى تحديدها.</div>';
+      else notes+='<div class="chk ok">تم التحقق من كل حركة بالرصيد الجاري ('+ck.verifiable+' حركة).</div>';
+      if(ck.fixed>0)notes+='<div class="chk">صحّحت '+ck.fixed+' حركة بالاعتماد على الرصيد الجاري (غالباً الفاصلة أو الاتجاه). راجع اللي عليها علامة "صُحّحت من الرصيد".</div>';
+    }else if(ck){
+      notes+=ck.ok?'<div class="chk ok">الأرصدة متطابقة: رصيد البداية + الحركات = رصيد النهاية.</div>':
+        '<div class="chk warn">فرق '+fmt(Math.abs(ck.diff))+' '+C().cur+' بين رصيد النهاية ومجموع الحركات. ممكن في حركات ناقصة أو زايدة، راجع القائمة.</div>';
     }else notes+='<div class="chk">ما قدرت أقارن الأرصدة (ما ظهرت بالكشف).</div>';
     if(st.currency&&cur&&st.currency!==cur)notes+='<div class="chk warn">عملة الكشف '+esc(st.currency)+' مختلفة عن عملة التطبيق ('+cur+'). المبالغ ما بتتحوّل، فراجعها.</div>';
     if(st.truncated)notes+='<div class="chk warn">ظهرت أول '+rows.length+' حركة فقط. ارفع كشف أقصر (نص شهر) لتشوف الباقي.</div>';
@@ -1006,9 +1014,64 @@ function stmtRowsHTML(){
   var st=ui.stmt, cp=PCATS[S.persona], ci=INCATS[S.persona];
   return st.rows.map(function(r,i){
     var opts=(r.type==='exp'?cp:ci).map(function(k){return '<option value="'+k+'"'+(k===r.cat?' selected':'')+'>'+CATS[k].n+'</option>'}).join('');
-    var flags=(r.dup?' · <span class="flag">مكرر</span>':'')+(r.transfer?' · <span class="flag">تحويل</span>':'');
+    var flags=(r.dup?' · <span class="flag">مكرر</span>':'')+(r.transfer?' · <span class="flag">تحويل</span>':'')+(r.fixed?' · <span class="flag">صُحّحت من الرصيد</span>':'')+(r.suspect?' · <span class="flag warn">راجع</span>':'');
     return '<div class="srow"><input type="checkbox" class="stmt-chk" data-act="stmt-toggle" data-i="'+i+'" '+(r.sel?'checked':'')+' aria-label="تحديد الحركة"><div class="sd"><b>'+esc(r.desc)+'</b><small>'+r.date.slice(5).replace('-','/')+flags+'</small></div><span class="'+(r.type==='inc'?'pos':'')+'">'+amt(r.amt,r.type==='inc'?'+':'−')+'</span><select class="f ssel" data-act="stmt-cat" data-i="'+i+'" aria-label="التصنيف">'+opts+'</select></div>';
   }).join('');
+}
+function download(name,mime,content){
+  try{
+    var blob=new Blob([content],{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();
+    setTimeout(function(){try{document.body.removeChild(a);URL.revokeObjectURL(url)}catch(e){}},1500);
+    return true;
+  }catch(e){return false}
+}
+function csvCell(v){
+  var t=String(v===null||v===undefined?'':v);
+  if(/^[=+\-@\t\r]/.test(t))t="'"+t;                 // حماية من حقن المعادلات بـ Excel
+  return /[",\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;
+}
+function exportCSV(){
+  var dec=C().dec,rows=[['التاريخ','النوع','التصنيف','المبلغ ('+C().cur+')','الملاحظة']];
+  S.tx.slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0}).forEach(function(x){
+    rows.push([x.date,x.type==='inc'?'دخل':'مصروف',(CATS[x.cat]||CATS.other).n,Number(x.amt).toFixed(dec),x.note||'']);
+  });
+  var txt='\ufeff'+rows.map(function(r){return r.map(csvCell).join(',')}).join('\r\n');
+  return download('dinarak-transactions-'+TODAY+'.csv','text/csv;charset=utf-8',txt);
+}
+function exportJSON(){
+  var o={app:'dinarak',version:1,exported_at:new Date().toISOString(),profile:{country:S.country,persona:S.persona,name:S.name||''},
+    transactions:S.tx.map(function(x){return {date:x.date,type:x.type==='inc'?'income':'expense',category:x.cat,amount:x.amt,note:x.note||''}}),
+    goals:S.goals,commitments:S.bills,customer_debts:S.debts};
+  return download('dinarak-backup-'+TODAY+'.json','application/json;charset=utf-8',JSON.stringify(o,null,2));
+}
+function wipeLocalAndLeave(uid0){
+  ls(function(){localStorage.removeItem('dinarak:v3:cache:'+uid0)});
+  clearTimeout(cloud.timer);cloud.dirty=false;cloud.uid=null;
+  S=null;ui.accArm=false;ui.returning=false;ui.pre={country:null,persona:null};ui.chat=[];ui.sheet=null;ui.tab='home';
+  Promise.resolve(sb.auth.signOut({scope:'local'})).catch(function(){}).then(function(){render()});
+  render();
+}
+function deleteAccountCloud(){
+  var uid0=cloud.uid;ui.accDeleting=true;render();
+  Promise.resolve(sb.auth.getSession()).then(function(r){
+    var ss=r&&r.data&&r.data.session;if(!ss)throw {code:'auth'};
+    return fetch('/api/delete-account',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ss.access_token},body:JSON.stringify({confirm:'DELETE'})});
+  }).then(function(resp){
+    return resp.json().catch(function(){return {}}).then(function(j){return {status:resp.status,j:j||{}}});
+  }).then(function(o){
+    if(o.status===200&&o.j.ok){ui.accDeleting=false;wipeLocalAndLeave(uid0);toast('تم حذف حسابك وكل بياناتك نهائياً');return}
+    if(o.status===503&&o.j.error==='delete_not_configured'){            // الحذف الكامل غير مفعّل: نحذف البيانات على الأقل
+      return Promise.resolve(sb.from('user_data').delete().eq('user_id',uid0)).then(function(r){
+        if(r&&r.error)throw r.error;
+        ui.accDeleting=false;wipeLocalAndLeave(uid0);toast('تم حذف كل بياناتك. (حذف هوية الدخول نفسها غير مفعّل بعد، راسلنا لحذفها)');
+      });
+    }
+    throw {code:'fail'};
+  }).catch(function(e){
+    ui.accDeleting=false;ui.accArm=false;render();
+    toast(e&&e.code==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':'تعذّر حذف الحساب، جرّب مرة ثانية.');
+  });
 }
 function pickDate(){
   var el=$('#f-date'),v=el&&el.value;
@@ -1325,18 +1388,12 @@ document.addEventListener('click',function(e){
     if(CLOUD){pushCloud().then(function(){return sb.auth.signOut()}).catch(function(){toast('تعذّر تسجيل الخروج')});return}
     setSession(null);S=null;ui.returning=true;ui.pre={country:null,persona:null};ui.sheet=null;ui.chat=[];render();return;
   }
+  if(a==='export-csv'){if(!S.tx.length){toast('ما في حركات للتصدير');return}toast(exportCSV()?'تم تنزيل الملف':'تعذّر التنزيل على هالمتصفح');return}
+  if(a==='export-json'){toast(exportJSON()?'تم تنزيل الملف':'تعذّر التنزيل على هالمتصفح');return}
   if(a==='del-account'){
+    if(ui.accDeleting)return;
     if(!ui.accArm){ui.accArm=true;render();return}
-    if(CLOUD){
-      var uid0=cloud.uid;clearTimeout(cloud.timer);cloud.dirty=false;
-      Promise.resolve(sb.from('user_data').delete().eq('user_id',uid0)).then(function(r){
-        if(r&&r.error)throw r.error;
-        ls(function(){localStorage.removeItem('dinarak:v3:cache:'+uid0)});
-        ui.accArm=false;toast('تم حذف كل بياناتك');
-        return sb.auth.signOut();
-      }).catch(function(){ui.accArm=false;toast('تعذّر حذف البيانات، جرّب مرة ثانية.')});
-      return;
-    }
+    if(CLOUD){deleteAccountCloud();return}
     var em2=S.email;ls(function(){localStorage.removeItem(UKEY+em2)});setSession(null);
     S=null;ui.accArm=false;ui.returning=false;ui.pre={country:null,persona:null};ui.chat=[];render();toast('تم حذف حسابك وكل بياناتك');return;
   }
