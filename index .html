@@ -202,6 +202,10 @@ nav.nav .add svg{stroke:var(--accent-ink);width:26px;height:26px}
 .sp-item .inl{margin-bottom:6px;align-items:center}
 .sp-sum{margin-top:10px;background:var(--accent-soft);border-radius:14px;padding:4px 12px}
 .pill .x{width:22px;height:22px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.metal-card{display:flex;flex-direction:column;gap:2px;width:100%;text-align:start;background:var(--surface);border:1.5px solid var(--gold);border-radius:14px;padding:10px 14px;margin-bottom:14px}
+.metal-card b{font-family:'Lalezar',sans-serif;font-weight:400;font-size:19px}
+.metal-card .v{font-size:22px;font-weight:600}
+.neg{color:var(--bad)}
 .flag.warn{background:color-mix(in srgb,var(--bad) 20%,var(--surface))}
 .chk{border-radius:12px;padding:8px 12px;font-size:14px;margin:8px 0;border:1.5px solid var(--line)}
 .chk.ok{border-color:var(--good);color:var(--good)}
@@ -354,7 +358,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -409,6 +413,10 @@ function cleanLists(u){
   u.goals=(Array.isArray(u.goals)?u.goals:[]).filter(function(g){return g&&isNum(g.target)&&g.target>0&&isNum(g.saved)}).map(function(g){return {id:String(g.id||uid()),name:String(g.name||'').slice(0,80),target:g.target,saved:g.saved}});
   u.bills=(Array.isArray(u.bills)?u.bills:[]).filter(function(b){return b&&isNum(b.amt)&&isNum(b.day)}).map(function(b){return {id:String(b.id||uid()),name:String(b.name||'').slice(0,80),amt:b.amt,day:b.day,paid:!!b.paid}});
   u.debts=(Array.isArray(u.debts)?u.debts:[]).filter(function(d){return d&&isNum(d.owed)}).map(function(d){var o={id:String(d.id||uid()),name:String(d.name||'').slice(0,80),owed:d.owed};if(d.phone)o.phone=cleanPhone(d.phone);return o});
+  u.metals=(Array.isArray(u.metals)?u.metals:[]).slice(0,100).filter(function(m){return m&&(m.metal==='gold'||m.metal==='silver')&&isNum(m.grams)&&m.grams>0&&m.grams<=1000000&&isNum(m.cost)&&m.cost>=0}).map(function(m){
+    var okP=m.metal==='gold'?(isNum(m.purity)&&m.purity>=8&&m.purity<=24):(isNum(m.purity)&&m.purity>=500&&m.purity<=1000);
+    return {id:String(m.id||uid()),metal:m.metal,purity:okP?Math.round(m.purity):(m.metal==='gold'?21:925),grams:m.grams,cost:m.cost,cur:MCODES.indexOf(m.cur)>-1?m.cur:(CCODE[u.country]||'JOD'),date:/^\d{4}-\d{2}-\d{2}$/.test(m.date||'')?m.date:TODAY,note:String(m.note||'').slice(0,60)}});
+  u.metalAdj=isNum(u.metalAdj)?Math.max(-30,Math.min(30,u.metalAdj)):0;
   u.recurring=(Array.isArray(u.recurring)?u.recurring:[]).filter(function(r){return r&&(r.type==='inc'||r.type==='exp')&&isNum(r.amt)&&r.amt>0&&isNum(r.day)}).slice(0,50).map(function(r){return {id:String(r.id||uid()),type:r.type,cat:CATS[r.cat]?r.cat:(r.type==='inc'?'otherinc':'other'),amt:r.amt,note:String(r.note||'').slice(0,100),day:recDay(r.day),active:r.active!==false,next:/^\d{4}-\d{2}$/.test(r.next||'')?r.next:MONTH}});
   return u;
 }
@@ -621,10 +629,10 @@ function viewHome(){
     '<div class="note">'+guil(360,230,20,78,0.045,1)+wmk()+'<span class="shine"></span><span class="sheen"></span><div class="in"><div class="cn"><span>'+heroLbl+'</span><span dir="ltr">'+yy+' / '+mm+'</span></div>'+
     '<div class="big"><bdi dir="ltr" class="amt" data-count="'+s.rem+'">'+fmt(s.rem)+'</bdi><span class="cur">'+C().cur+'</span></div>'+
     '<div class="sub"><div><small>'+(p==='merchant'?'مبيعات':'دخل')+'</small><b>'+amt(s.inc)+'</b></div><div><small>مصاريف</small><b>'+amt(s.exp)+'</b></div></div></div></div>'+
-    '<div class="tiles">'+tiles+'</div>'+
+    '<div class="tiles">'+tiles+'</div>'+metalsCard()+
     '<section class="blk"><h2 class="sec disp">إيقاع الصرف</h2>'+dayBars(ui.month,s)+'</section>'+
     '<section class="blk"><h2 class="sec disp">'+t('whereMoney')+'</h2>'+bar+leg+'<button class="btn ghost block" data-act="open-report">تقرير '+monthName(ui.month)+'</button></section>'+
-    '<section class="blk"><h2 class="sec disp">'+(ui.showAll?'كل الحركات':'آخر الحركات')+'</h2><p class="fine" style="margin-top:-4px">اضغط على الحركة لتعديلها، أو على سلة المهملات لحذفها (وتقدر تتراجع).</p>'+recent+moreBtn+'<button class="btn ghost block" data-act="split-open">قسّم فاتورة بين الأصحاب '+fb()+'</button>'+(CLOUD&&!ui.stmtOff?'<button class="btn ghost block" data-act="stmt-open">ارفع كشف حساب البنك (PDF) '+fb()+'</button>':'')+'</section></main>';
+    '<section class="blk"><h2 class="sec disp">'+(ui.showAll?'كل الحركات':'آخر الحركات')+'</h2><p class="fine" style="margin-top:-4px">اضغط على الحركة لتعديلها، أو على سلة المهملات لحذفها (وتقدر تتراجع).</p>'+recent+moreBtn+'<button class="btn ghost block" data-act="metal-open">ذهبي وفضتي: تتبّع قيمتها وربحك '+fb()+'</button><button class="btn ghost block" data-act="split-open">قسّم فاتورة بين الأصحاب '+fb()+'</button>'+(CLOUD&&!ui.stmtOff?'<button class="btn ghost block" data-act="stmt-open">ارفع كشف حساب البنك (PDF) '+fb()+'</button>':'')+'</section></main>';
 }
 
 function viewExtra(){
@@ -801,8 +809,9 @@ function render(){
   if(ui.screen==='country'){app.innerHTML=E(viewCountry());return}
   if(ui.screen==='persona'){app.innerHTML=E(viewPersona());return}
   var v=ui.tab==='home'?viewHome():ui.tab==='extra'?viewExtra():ui.tab==='advisor'?viewAdvisor():viewAccount();
-  app.innerHTML=E(v)+navHTML()+(ui.sheet==='add'?sheetAdd():ui.sheet==='report'?sheetReport():ui.sheet==='stmt'?sheetStmt():ui.sheet==='fb'?sheetFb():ui.sheet==='split'?sheetSplit():'');
+  app.innerHTML=E(v)+navHTML()+(ui.sheet==='add'?sheetAdd():ui.sheet==='report'?sheetReport():ui.sheet==='stmt'?sheetStmt():ui.sheet==='fb'?sheetFb():ui.sheet==='split'?sheetSplit():ui.sheet==='metals'?sheetMetals():'');
   if(anim)countUp();
+  if(ui.screen==='app'&&S.metals&&S.metals.length&&!ui.prices&&!ui.pricesBusy&&!ui.pricesTried){ui.pricesTried=true;ensurePrices()}
   if(ui.sheet==='stmt'&&ui.stmt&&ui.stmt.phase==='review')stmtSetCount();
   if(ui.sheet==='add'){var sm=$('#smart');if(sm)sm.focus()}
 }
@@ -1400,6 +1409,89 @@ function splitField(el){
   else return false;
   splitRefresh();return true;
 }
+/* ---------- الذهب والفضة ---------- */
+var OZG=31.1034768, MCODES=['JOD','ILS','SAR','AED','KWD','EGP'], KARATS=[24,22,21,18,14], SILVERS=[999,925,900,800];
+function codeInfo(code){for(var k in COUNTRIES){if(CCODE[k]===code)return COUNTRIES[k]}return COUNTRIES.JO}
+function fmtCode(v,code){var d=codeInfo(code).dec;return Number(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function moneyCode(v,code,sign){return '<bdi dir="ltr" class="amt">'+(sign||'')+fmtCode(v,code)+'</bdi><span class="cur">'+codeInfo(code).cur+'</span>'}
+function toNumSigned(x){x=String(x).replace(/[٠-٩]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.indexOf(d)}).replace(/٫/g,'.').replace(',','.');var m=x.match(/-?\d+(?:\.\d+)?/);return m?parseFloat(m[0]):NaN}
+function metalPerGram(pr,metal,purity,code,adj){
+  if(!pr||!pr.fx)return null;var fx=pr.fx[code];if(!(fx>0))return null;
+  var base=metal==='gold'?pr.gold_usd_gram*(purity/24):pr.silver_usd_gram*(purity/1000);
+  if(!(base>0))return null;
+  return base*fx*(1+(adj||0)/100);
+}
+function metalCalc(list,pr,adj){
+  var rows=[],tot={};
+  list.forEach(function(h){
+    var pg=metalPerGram(pr,h.metal,h.purity,h.cur,adj),val=pg===null?null:pg*h.grams,pl=val===null?null:val-h.cost;
+    rows.push({h:h,pg:pg,val:val,pl:pl,pct:(pl!==null&&h.cost>0)?pl/h.cost*100:null});
+    if(val!==null){var t=tot[h.cur]||(tot[h.cur]={cost:0,val:0});t.cost+=h.cost;t.val+=val}
+  });
+  return {rows:rows,tot:tot};
+}
+function metalLabel(h){return h.metal==='gold'?'ذهب عيار '+h.purity:'فضة '+h.purity}
+function plHTML(pl,pct,code){return '<span class="'+(pl>=0?'pos':'neg')+'">'+moneyCode(Math.abs(pl),code,pl>=0?'+':'−')+(pct!==null?' ('+(pl>=0?'+':'−')+Math.abs(pct).toFixed(1)+'%)':'')+'</span>'}
+function ensurePrices(force){
+  var fresh=ui.prices&&(Date.now()-ui.pricesTs<300000);
+  if(ui.pricesBusy||(!force&&fresh))return;
+  ui.pricesBusy=true;ui.pricesErr=false;
+  Promise.resolve(fetch('/api/prices')).then(function(r){return r.json().catch(function(){return {}}).then(function(j){return {status:r.status,j:j||{}}})}).then(function(o){
+    if(o.status===200&&o.j.gold_usd_gram>0&&o.j.silver_usd_gram>0){ui.prices=o.j;ui.pricesTs=Date.now();ls(function(){localStorage.setItem('dinarak:v3:prices',JSON.stringify(o.j))})}
+    else throw {code:'bad'};
+  }).catch(function(){
+    ui.pricesErr=true;
+    if(!ui.prices){var raw=ls(function(){return localStorage.getItem('dinarak:v3:prices')});if(raw){try{var pp=JSON.parse(raw);if(pp&&pp.gold_usd_gram>0){pp.stale=true;pp.offline=true;ui.prices=pp;ui.pricesTs=Date.now()-290000}}catch(e){}}}
+  }).then(function(){ui.pricesBusy=false;if(ui.screen==='app'&&(ui.sheet==='metals'||ui.tab==='home'))render()});
+}
+function agoText(iso){
+  var t=Date.parse(iso||'');if(!isFinite(t))return '';var m=Math.max(0,Math.round((Date.now()-t)/60000));
+  return m<1?'هلأ':m<60?'قبل '+m+' دقيقة':m<1440?'قبل '+Math.round(m/60)+' ساعة':'قبل '+Math.round(m/1440)+' يوم';
+}
+function metalsCard(){
+  var ms=S.metals||[];if(!ms.length)return '';
+  var c=metalCalc(ms,ui.prices,S.metalAdj||0),codes=Object.keys(c.tot),h='<button class="metal-card" data-act="metal-open"><b>ذهبي وفضتي</b>';
+  if(!ui.prices)h+='<small class="muted">'+(ui.pricesErr?'تعذّر تحميل الأسعار. اضغط للمحاولة.':'جاري تحميل الأسعار…')+'</small>';
+  else if(!codes.length)h+='<small class="muted">الأسعار غير متاحة لعملة مشترياتك حالياً.</small>';
+  else codes.forEach(function(code){var t=c.tot[code],pl=t.val-t.cost;h+='<span class="v">'+moneyCode(t.val,code)+'</span><small>'+plHTML(pl,t.cost>0?pl/t.cost*100:null,code)+(ui.prices.stale?' · سعر قديم':'')+'</small>'});
+  return h+'</button>';
+}
+function purityOptions(metal,sel){return (metal==='gold'?KARATS:SILVERS).map(function(v){return '<option value="'+v+'"'+(v===sel?' selected':'')+'>'+(metal==='gold'?'عيار '+v:'فضة '+v)+'</option>'}).join('')}
+function sheetMetals(){
+  var ms=S.metals||[],pr=ui.prices,adj=S.metalAdj||0,mine=CCODE[S.country]||'JOD',view=ui.metalCur||mine,h='';
+  var curOpts=function(sel){return MCODES.map(function(c){return '<option value="'+c+'"'+(c===sel?' selected':'')+'>'+codeInfo(c).n+' ('+codeInfo(c).cur+')</option>'}).join('')};
+  if(pr){
+    h+='<div class="chk'+(pr.stale?' warn':'')+'"><div class="inl" style="align-items:center;justify-content:space-between;gap:8px"><b>سعر الغرام اليوم</b><select class="f" data-act="metal-view" style="max-width:190px" aria-label="عملة العرض">'+curOpts(view)+'</select></div>';
+    var rowsP=[['ذهب عيار 24',metalPerGram(pr,'gold',24,view,adj)],['ذهب عيار 21',metalPerGram(pr,'gold',21,view,adj)],['ذهب عيار 18',metalPerGram(pr,'gold',18,view,adj)],['فضة 999',metalPerGram(pr,'silver',999,view,adj)]];
+    if(rowsP[0][1]===null)h+='<p class="fine" style="margin:6px 0 0">السعر غير متاح لهالعملة حالياً.</p>';
+    else rowsP.forEach(function(r){h+='<div style="display:flex;justify-content:space-between;padding:2px 0"><span>'+r[0]+'</span><b>'+moneyCode(r[1],view)+'</b></div>'});
+    h+='<p class="fine" style="margin:6px 0 0">آخر تحديث: '+(agoText(pr.fetched_at||pr.as_of)||'—')+(pr.stale?' — الأسعار قديمة لأن المصدر غير متاح حالياً، وهي آخر سعر معروف.':'')+' <button class="link" style="display:inline;margin:0" data-act="metal-refresh">تحديث</button></p></div>';
+  }else h+='<div class="chk">'+(ui.pricesErr?'تعذّر تحميل الأسعار. <button class="link" style="display:inline;margin:0" data-act="metal-refresh">حاول مرة ثانية</button>':'جاري تحميل الأسعار…')+'</div>';
+  var c=metalCalc(ms,pr,adj),codes=Object.keys(c.tot);
+  if(codes.length){h+='<div class="sp-sum">'+codes.map(function(code){var t=c.tot[code],pl=t.val-t.cost;return '<div class="row-i"><div class="t"><b>المجموع ('+codeInfo(code).cur+')</b><small>دفعت '+fmtCode(t.cost,code)+'</small></div><div style="text-align:end"><div style="font-weight:700;font-size:18px">'+moneyCode(t.val,code)+'</div><small>'+plHTML(pl,t.cost>0?pl/t.cost*100:null,code)+'</small></div></div>'}).join('')+'</div>'}
+  h+=c.rows.map(function(r){
+    var x=r.h;
+    return '<div class="row-i" style="display:block"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-weight:600">'+metalLabel(x)+' · '+Number(x.grams).toFixed(2)+' غرام</b><button class="x del" data-act="metal-del" data-id="'+x.id+'" aria-label="حذف">'+icon('trash')+'</button></div>'+
+      '<small class="fine">دفعت '+moneyCode(x.cost,x.cur)+(x.grams>0?' (الغرام '+moneyCode(x.cost/x.grams,x.cur)+')':'')+' · '+esc(x.date)+(x.note?' · '+esc(x.note):'')+'</small>'+
+      (r.val===null?'<div class="fine">السعر غير متاح لعملة هالشراء حالياً.</div>':'<div>قيمته اليوم '+moneyCode(r.val,x.cur)+' · '+plHTML(r.pl,r.pct,x.cur)+'</div>')+'</div>';
+  }).join('')||'<div class="empty">ما أضفت أي ذهب أو فضة بعد.</div>';
+  h+='<h3 style="margin:16px 0 4px;font-size:18px">أضف ذهب أو فضة</h3>'+
+    '<div class="inl"><div style="flex:1"><label class="l" for="m-metal">النوع</label><select class="f" id="m-metal" data-act="metal-kind"><option value="gold">ذهب</option><option value="silver">فضة</option></select></div><div style="flex:1"><label class="l" for="m-purity">العيار</label><select class="f" id="m-purity">'+purityOptions('gold',21)+'</select></div></div>'+
+    '<div class="inl"><div style="flex:1"><label class="l" for="m-grams">الوزن</label><input class="f" id="m-grams" inputmode="decimal" placeholder="مثلاً 25"></div><div style="flex:1"><label class="l" for="m-unit">بوحدة</label><select class="f" id="m-unit"><option value="g">غرام</option><option value="oz">أونصة</option></select></div></div>'+
+    '<div class="inl"><div style="flex:1"><label class="l" for="m-cost">إجمالي اللي دفعته</label><input class="f" id="m-cost" inputmode="decimal" placeholder="0.000"></div><div style="flex:1"><label class="l" for="m-cur">بعملة</label><select class="f" id="m-cur">'+curOpts(mine)+'</select></div></div>'+
+    '<label class="l" for="m-date">تاريخ الشراء</label><input class="f" id="m-date" type="date" value="'+TODAY+'" max="'+TODAY+'"><label class="l" for="m-note">ملاحظة (اختياري)</label><input class="f" id="m-note" maxlength="60" placeholder="مثلاً: سلسال، سبيكة">'+
+    '<button class="btn block" data-act="metal-add">أضف</button>'+
+    '<h3 style="margin:16px 0 4px;font-size:18px">تعديل السعر ليطابق محلك</h3><div class="inl" style="align-items:center"><input class="f" data-act="metal-adj" inputmode="decimal" dir="ltr" style="max-width:110px;text-align:start" value="'+adj+'" aria-label="نسبة التعديل"><span class="fine" style="flex:1">% (مثلاً −3 إذا الصايغ بيشتري بأقل من السعر العالمي)</span></div>'+
+    '<p class="fine" style="margin-top:14px">الأسعار تقديرية: السعر العالمي للذهب والفضة محوّل لعملتك. سعر الصايغ عندك قد يختلف بسبب المصنعية وفرق الشراء والبيع، والمصنعية اللي دفعتها ما بترجع عند البيع. المعلومات للمتابعة فقط وليست نصيحة استثمارية.</p>';
+  return '<div class="scrim" data-act="metal-close"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="ذهبي وفضتي"><div class="grab"></div><h2 class="disp">ذهبي وفضتي '+fb()+'</h2>'+h+'</section>';
+}
+function metalField(el){
+  var act=el&&el.getAttribute&&el.getAttribute('data-act');
+  if(act==='metal-view'){ui.metalCur=MCODES.indexOf(el.value)>-1?el.value:null;render();return true}
+  if(act==='metal-adj'){var n=toNumSigned(el.value);S.metalAdj=isNaN(n)?0:Math.max(-30,Math.min(30,n));saveUser();render();return true}
+  if(act==='metal-kind'){var pu=$('#m-purity');if(pu)pu.innerHTML=purityOptions(el.value==='silver'?'silver':'gold',el.value==='silver'?925:21);return true}
+  return false;
+}
 function pickDate(){
   var el=$('#f-date'),v=el&&el.value;
   if(!v||!/^\d{4}-\d{2}-\d{2}$/.test(v)||v>TODAY)return TODAY;
@@ -1734,6 +1826,24 @@ document.addEventListener('click',function(e){
     if(CLOUD){pushCloud().then(function(){return sb.auth.signOut()}).catch(function(){toast('تعذّر تسجيل الخروج')});return}
     setSession(null);S=null;ui.returning=true;ui.pre={country:null,persona:null};ui.sheet=null;ui.chat=[];render();return;
   }
+  if(a==='metal-open'){ui.sheet='metals';ui.pricesTried=true;render();ensurePrices();return}
+  if(a==='metal-close'){ui.sheet=null;render();return}
+  if(a==='metal-refresh'){ensurePrices(true);render();return}
+  if(a==='metal-del'){
+    var mh=(S.metals||[]).filter(function(x){return x.id===id})[0];if(!mh)return;
+    S.metals=S.metals.filter(function(x){return x.id!==id});saveUser();render();
+    toast('تم حذف '+metalLabel(mh),function(){S.metals.push(mh);saveUser();render()});return;
+  }
+  if(a==='metal-add'){
+    var mt=$('#m-metal').value==='silver'?'silver':'gold',mp=parseInt($('#m-purity').value,10),mu=$('#m-unit').value==='oz'?OZG:1;
+    var mg=toNum($('#m-grams').value)*mu,mc=toNum($('#m-cost').value),mcur=MCODES.indexOf($('#m-cur').value)>-1?$('#m-cur').value:(CCODE[S.country]||'JOD');
+    if(!(mg>=0.01&&mg<=1000000)){toast('اكتب الوزن');return}
+    if(isNaN(mc)||mc<0){toast('اكتب المبلغ اللي دفعته');return}
+    var md=$('#m-date').value;if(!/^\d{4}-\d{2}-\d{2}$/.test(md)||md>TODAY)md=TODAY;
+    if(!S.metals)S.metals=[];if(S.metals.length>=100){toast('وصلت للحد الأقصى (100)');return}
+    S.metals.push({id:uid(),metal:mt,purity:mp,grams:Math.round(mg*1000)/1000,cost:mc,cur:mcur,date:md,note:String($('#m-note').value||'').trim().slice(0,60)});
+    saveUser();render();ensurePrices();toast('تمت الإضافة');return;
+  }
   if(a==='split-open'){ui.sheet='split';ui.split={phase:'start'};render();return}
   if(a==='split-close'){if(ui.splitBusy)return;ui.sheet=null;ui.split=null;render();return}
   if(a==='split-photo'){if(S.scanConsent!==true){ui.split={phase:'consent'};render();return}var spf=$('#split-in');if(spf)spf.click();return}
@@ -1804,6 +1914,7 @@ document.addEventListener('change',function(e){
   var el=e.target;
   if(el&&el.id==='split-in'){var spfile=el.files&&el.files[0];if(spfile)splitFile(spfile);try{el.value=''}catch(x){}return}
   if(splitField(el))return;
+  if(metalField(el))return;
   if(el&&el.id==='stmt-in'){var sf=el.files&&el.files[0];if(sf)stmtFile(sf);try{el.value=''}catch(x){}return}
   if(el&&el.getAttribute&&el.getAttribute('data-act')==='stmt-toggle'&&ui.stmt&&ui.stmt.rows){ui.stmt.rows[+el.getAttribute('data-i')].sel=!!el.checked;stmtSetCount();return}
   if(el&&el.getAttribute&&el.getAttribute('data-act')==='stmt-cat'&&ui.stmt&&ui.stmt.rows){ui.stmt.rows[+el.getAttribute('data-i')].cat=el.value;return}
