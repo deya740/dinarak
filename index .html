@@ -387,10 +387,8 @@ function pushCloud(){
     cloud.failed=false;
   }).catch(function(){cloud.dirty=true;if(!cloud.failed){cloud.failed=true;toast('تعذّر الحفظ بالسحابة، بنحاول مرة ثانية.')}});
 }
-function cleanData(u){
+function cleanLists(u){
   var isNum=function(n){return typeof n==='number'&&isFinite(n)};
-  if(!COUNTRIES[u.country])u.country=null;
-  if(!PCATS[u.persona])u.persona=null;
   u.tx=(Array.isArray(u.tx)?u.tx:[]).filter(function(x){return x&&(x.type==='inc'||x.type==='exp')&&isNum(x.amt)&&typeof x.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)}).map(function(x){
     var o={id:String(x.id||uid()),type:x.type,cat:CATS[x.cat]?x.cat:(x.type==='inc'?'otherinc':'other'),amt:x.amt,note:String(x.note||'').slice(0,200),date:x.date};
     if(x.billId)o.billId=String(x.billId);if(x.ext)o.ext=String(x.ext).slice(0,140);if(x.rid)o.rid=String(x.rid);return o});
@@ -398,6 +396,24 @@ function cleanData(u){
   u.bills=(Array.isArray(u.bills)?u.bills:[]).filter(function(b){return b&&isNum(b.amt)&&isNum(b.day)}).map(function(b){return {id:String(b.id||uid()),name:String(b.name||'').slice(0,80),amt:b.amt,day:b.day,paid:!!b.paid}});
   u.debts=(Array.isArray(u.debts)?u.debts:[]).filter(function(d){return d&&isNum(d.owed)}).map(function(d){var o={id:String(d.id||uid()),name:String(d.name||'').slice(0,80),owed:d.owed};if(d.phone)o.phone=cleanPhone(d.phone);return o});
   u.recurring=(Array.isArray(u.recurring)?u.recurring:[]).filter(function(r){return r&&(r.type==='inc'||r.type==='exp')&&isNum(r.amt)&&r.amt>0&&isNum(r.day)}).slice(0,50).map(function(r){return {id:String(r.id||uid()),type:r.type,cat:CATS[r.cat]?r.cat:(r.type==='inc'?'otherinc':'other'),amt:r.amt,note:String(r.note||'').slice(0,100),day:recDay(r.day),active:r.active!==false,next:/^\d{4}-\d{2}$/.test(r.next||'')?r.next:MONTH}});
+  return u;
+}
+function cleanData(u){
+  if(!COUNTRIES[u.country])u.country=null;
+  if(!PCATS[u.persona])u.persona=null;
+  cleanLists(u);
+  var bk={};
+  if(u.books&&typeof u.books==='object'){
+    ['student','employee','merchant'].forEach(function(k){
+      var b=u.books[k];
+      if(b&&typeof b==='object'&&k!==u.persona){
+        var c=cleanLists({tx:b.tx,goals:b.goals,bills:b.bills,debts:b.debts,recurring:b.recurring});
+        c.billsMonth=/^\d{4}-\d{2}$/.test(String(b.billsMonth||''))?b.billsMonth:MONTH;
+        bk[k]=c;
+      }
+    });
+  }
+  u.books=bk;
   return u;
 }
 function cloudSignedIn(user){
@@ -668,10 +684,16 @@ function viewAccount(){
     '<div class="row-i"><div class="t"><b>الدولة</b><small>'+C().n+' · '+C().cn+'</small></div></div>'+
     '<div class="chips" style="margin-top:6px">'+Object.keys(COUNTRIES).map(function(k){return '<button class="qchip '+(S.country===k?'on':'')+'" data-act="pick-country" data-c="'+k+'" data-stay="1">'+COUNTRIES[k].n+'</button>'}).join('')+'</div>'+
     '<p class="fine">غيّر الدولة وشاهد كيف تتبدل العملة واللهجة وأسماء الأشهر فوراً.</p></section>'+
-    '<section class="blk"><div class="row-i"><div class="t"><b>الشخصية</b><small>'+pLabel(S.persona)+' — '+P[S.persona].tag+'</small></div></div>'+
-    '<p class="fine">'+(CLOUD?'غيّر شخصيتك (بياناتك تبقى كما هي):':'جرّب شخصية ثانية (بالنموذج الأولي تُستبدل البيانات الوهمية):')+'</p><div class="chips">'+
-    others.map(function(o){return '<button class="btn ghost small" data-act="switch" data-p="'+o+'">'+pLabel(o)+'</button>'}).join('')+'</div></section>'+
-    recSection()+fbSection()+'<section class="blk"><h2 class="sec disp">بياناتي</h2><p class="fine" style="margin-top:-4px">نسختك بإيدك. نزّل حركاتك بأي وقت.</p><div class="chips"><button class="btn ghost small" data-act="export-csv">تصدير الحركات (Excel / CSV)</button><button class="btn ghost small" data-act="export-json">نسخة كاملة (JSON)</button></div></section>'+
+    (CLOUD?
+      '<section class="blk"><h2 class="sec disp">دفاترك</h2><p class="fine" style="margin-top:-4px">كل شخصية لها دفترها الخاص: حركاتها ورصيدها وأهدافها منفصلة. مفيد إذا عندك مصاريف شخصية ومحل مثلاً. تبديل الدفتر ما بيمسح شي.</p>'+
+      ['student','employee','merchant'].map(function(k){
+        var n=(k===S.persona)?S.tx.length:((S.books&&S.books[k])?S.books[k].tx.length:0);
+        return '<div class="row-i"><div class="t"><b>'+pLabel(k)+'</b><small>'+(k===S.persona?'الدفتر الحالي · ':'')+n+' حركة</small></div>'+(k===S.persona?'<span class="fbadge">الحالي</span>':'<button class="btn ghost small" data-act="switch" data-p="'+k+'">'+(n?'افتح':'ابدأ')+'</button>')+'</div>';
+      }).join('')+'</section>'
+    :
+      '<section class="blk"><div class="row-i"><div class="t"><b>الشخصية</b><small>'+pLabel(S.persona)+' — '+P[S.persona].tag+'</small></div></div><p class="fine">جرّب شخصية ثانية (بالنموذج الأولي تُستبدل البيانات الوهمية):</p><div class="chips">'+
+      others.map(function(o){return '<button class="btn ghost small" data-act="switch" data-p="'+o+'">'+pLabel(o)+'</button>'}).join('')+'</div></section>')+
+    recSection()+fbSection()+'<section class="blk"><h2 class="sec disp">بياناتي</h2><p class="fine" style="margin-top:-4px">نسختك بإيدك. نزّل حركات دفترك الحالي ('+pLabel(S.persona)+') بأي وقت.</p><div class="chips"><button class="btn ghost small" data-act="export-csv">تصدير الحركات (Excel / CSV)</button></div></section>'+
     '<section class="blk"><h2 class="sec disp">سجلّك وخصوصيتك</h2><ul class="plain"><li>سجلّك الشهري يبقى محفوظاً ما دام حسابك موجوداً، ولا يُحذف تلقائياً.</li><li>تقرير كل شهر مجاني دائماً.</li><li>ما نطلب بيانات دخول البنك أبداً.</li><li><a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a> · <a href="terms.html" target="_blank" rel="noopener">الشروط</a></li></ul>'+
     '<button class="btn danger block" data-act="del-account" '+(ui.accDeleting?'disabled':'')+'>'+(ui.accDeleting?'جاري الحذف…':ui.accArm?'تأكيد: احذف حسابي وكل بياناتي نهائياً':'احذف حسابي وكل بياناتي')+'</button>'+(ui.accArm&&!ui.accDeleting?'<p class="hint err" style="margin-top:8px">هالإجراء نهائي: بيمسح حسابك وكل حركاتك وما بنقدر نرجعها. نزّل نسخة من بياناتك أول إذا بدك.</p>':'')+'<p class="fine" style="margin-top:8px"><a href="delete-account.html" target="_blank" rel="noopener">كيف يتم حذف الحساب</a></p></section>'+
     '<section class="blk"><h2 class="sec disp">الخطط</h2><div class="banner"><span class="fbadge">فترة الإطلاق</span><span>كل ما يلي مجاني الآن. كل ميزة بعلامة "مجاني الآن" ستنضم لاحقاً للخطة المدفوعة.</span></div>'+
@@ -1043,7 +1065,7 @@ function exportCSV(){
     rows.push([x.date,x.type==='inc'?'دخل':'مصروف',(CATS[x.cat]||CATS.other).n,Number(x.amt).toFixed(dec),x.note||'']);
   });
   var txt='\ufeff'+rows.map(function(r){return r.map(csvCell).join(',')}).join('\r\n');
-  return download('dinarak-transactions-'+TODAY+'.csv','text/csv;charset=utf-8',txt);
+  return download('dinarak-'+S.persona+'-transactions-'+TODAY+'.csv','text/csv;charset=utf-8',txt);
 }
 function exportJSON(){
   var o={app:'dinarak',version:1,exported_at:new Date().toISOString(),profile:{country:S.country,persona:S.persona,name:S.name||''},
@@ -1131,6 +1153,16 @@ function sendFeedback(){
     if(d&&d.ok){ui.sheet=null;render();toast('وصلتنا ملاحظتك، شكراً');return}
     var mm=$('#fb-msg');if(mm)mm.textContent=d&&d.reason==='rate'?'أرسلت ملاحظات كثيرة. جرّب بعد شوي.':d&&d.reason==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':'تعذّر الإرسال، جرّب مرة ثانية.';
   }).catch(function(){var mm=$('#fb-msg');if(mm)mm.textContent='تعذّر الإرسال، جرّب مرة ثانية.'}).then(function(){ui.fbBusy=false});
+}
+function emptyBook(){return {tx:[],goals:[],bills:[],debts:[],recurring:[],billsMonth:MONTH}}
+function switchBook(np){
+  if(!PCATS[np]||S.persona===np)return false;
+  if(!S.books)S.books={};
+  if(S.persona){S.books[S.persona]={tx:S.tx,goals:S.goals,bills:S.bills,debts:S.debts,recurring:S.recurring||[],billsMonth:S.billsMonth||MONTH}}
+  var nb=S.books[np]||emptyBook();delete S.books[np];
+  S.persona=np;S.tx=nb.tx;S.goals=nb.goals;S.bills=nb.bills;S.debts=nb.debts;S.recurring=nb.recurring||[];S.billsMonth=nb.billsMonth||MONTH;
+  ui.tab='home';ui.chat=[];ui.month=MONTH;ui.stmt=null;ui.sheet=null;
+  saveUser();return true;
 }
 function pickDate(){
   var el=$('#f-date'),v=el&&el.value;
@@ -1322,7 +1354,12 @@ document.addEventListener('click',function(e){
   }
   if(a==='pick'||a==='switch'){
     var pp=el.getAttribute('data-p');
-    if(S){if(CLOUD){S.persona=pp;if(!S.billsMonth)S.billsMonth=MONTH;ui.tab='home';saveUser()}else applySeed(pp)}else{ui.pre.persona=pp;savePre()}
+    if(S){
+      if(CLOUD){
+        var wasSet=!!S.persona,hadBook=!!(S.books&&S.books[pp]);
+        if(switchBook(pp)&&wasSet)toast(hadBook?'رجعت لدفتر «'+pLabel(pp)+'»':'فتحنا دفتر «'+pLabel(pp)+'» جديد وفاضي. دفترك السابق محفوظ.');
+      }else applySeed(pp);
+    }else{ui.pre.persona=pp;savePre()}
     render();window.scrollTo(0,0);return;
   }
   if(a==='nav'){ui.tab=el.getAttribute('data-tab');ui.accArm=false;render();window.scrollTo(0,0);return}
