@@ -2,6 +2,7 @@
 // - الملفات الثابتة تُخدَم من ASSETS
 // - /api/ask  : المدير المالي (نص)    — حد يومي لكل مستخدم + حد عام
 // - /api/scan : قراءة فاتورة من صورة  — حد يومي لكل مستخدم + حد عام
+// - /api/prices : أسعار الذهب والفضة العالمية + أسعار الصرف (تخزين مؤقت 30 دقيقة)
 // - /api/bill : قراءة فاتورة لتقسيمها (أصناف + ضريبة + خدمة)
 // - /api/delete-account: حذف الحساب كاملاً (يحتاج SUPABASE_SERVICE_KEY كسر)
 // - /api/status: تشخيص (بدون أي قيم سرية)
@@ -644,6 +645,58 @@ async function handleBill(request, env) {
   });
 }
 
+// ---------- أسعار الذهب والفضة (مصدر عام مجاني، مع تخزين مؤقت بذاكرة الخادم) ----------
+const OZ_G = 31.1034768;
+const PRICE_TTL = 30 * 60 * 1000;
+const CUR_CODES = ['JOD', 'ILS', 'SAR', 'AED', 'KWD', 'EGP'];
+const PEGS = { JOD: 0.709, SAR: 3.75, AED: 3.6725 };   // عملات مربوطة بالدولار (احتياط فقط)
+let priceMem = null;
+
+async function fetchPrices() {
+  const r = await fetch('https://xaus.com/api/v1/spot', { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error('upstream ' + r.status);
+  const j = await r.json();
+  const goldOz = Number(j && j.spot_usd_oz), silverOz = Number(j && j.silver_usd_oz);
+  if (!(goldOz > 200 && goldOz < 100000) || !(silverOz > 2 && silverOz < 5000)) throw new Error('bad prices');
+  const tbl = (j && j.fx_rates) || {};
+  const fx = { USD: 1 };
+  for (const c of CUR_CODES) {
+    let v = Number(tbl[c] && typeof tbl[c] === 'object' ? tbl[c].rate : tbl[c]);
+    if (!(v > 0 && v < 100000)) v = PEGS[c] || null;
+    fx[c] = v || null;
+  }
+  return {
+    gold_usd_gram: goldOz / OZ_G,
+    silver_usd_gram: silverOz / OZ_G,
+    fx,
+    as_of: String((j && (j.price_as_of || j.updated_at)) || new Date().toISOString()),
+    upstream_stale: !!(j && j.stale === true),
+  };
+}
+
+async function handlePrices(request) {
+  if (request.method !== 'GET') return json({ error: 'method' }, 405);
+  const now = Date.now();
+  let data = null, stale = false;
+  if (priceMem && now - priceMem.ts < PRICE_TTL) {
+    data = priceMem.data; stale = !!data.upstream_stale;
+  } else {
+    try {
+      data = await fetchPrices();
+      priceMem = { data, ts: now };
+      stale = !!data.upstream_stale;
+    } catch (e) {
+      if (priceMem) { data = priceMem.data; stale = true; }   // نعرض آخر سعر معروف مع تنبيه
+      else return json({ error: 'prices_unavailable' }, 503);
+    }
+  }
+  const body = JSON.stringify({
+    gold_usd_gram: data.gold_usd_gram, silver_usd_gram: data.silver_usd_gram, fx: data.fx,
+    as_of: data.as_of, stale, fetched_at: new Date(priceMem ? priceMem.ts : now).toISOString(),
+  });
+  return new Response(body, { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
+}
+
 function status(env) {
   const k = env.SUPABASE_ANON_KEY || '';
   return json({
@@ -663,6 +716,7 @@ export default {
     if (url.pathname === '/api/ask') return handleAsk(request, env);
     if (url.pathname === '/api/scan') return handleScan(request, env);
     if (url.pathname === '/api/statement') return handleStatement(request, env);
+    if (url.pathname === '/api/prices') return handlePrices(request);
     if (url.pathname === '/api/bill') return handleBill(request, env);
     if (url.pathname === '/api/delete-account') return handleDeleteAccount(request, env);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);
