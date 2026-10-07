@@ -198,6 +198,10 @@ nav.nav .add svg{stroke:var(--accent-ink);width:26px;height:26px}
 .onb .ck.ok{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .onb .t{flex:1;min-width:0}.onb .t b{display:block;font-weight:600;font-size:15.5px}.onb .t small{color:var(--muted);font-size:13px}
 .onb .done b{text-decoration:line-through;opacity:.6}
+.sp-item{padding:8px 0;border-bottom:1.5px dashed var(--line)}
+.sp-item .inl{margin-bottom:6px;align-items:center}
+.sp-sum{margin-top:10px;background:var(--accent-soft);border-radius:14px;padding:4px 12px}
+.pill .x{width:22px;height:22px;font-size:15px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
 .flag.warn{background:color-mix(in srgb,var(--bad) 20%,var(--surface))}
 .chk{border-radius:12px;padding:8px 12px;font-size:14px;margin:8px 0;border:1.5px solid var(--line)}
 .chk.ok{border-color:var(--good);color:var(--good)}
@@ -350,7 +354,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -620,7 +624,7 @@ function viewHome(){
     '<div class="tiles">'+tiles+'</div>'+
     '<section class="blk"><h2 class="sec disp">إيقاع الصرف</h2>'+dayBars(ui.month,s)+'</section>'+
     '<section class="blk"><h2 class="sec disp">'+t('whereMoney')+'</h2>'+bar+leg+'<button class="btn ghost block" data-act="open-report">تقرير '+monthName(ui.month)+'</button></section>'+
-    '<section class="blk"><h2 class="sec disp">'+(ui.showAll?'كل الحركات':'آخر الحركات')+'</h2><p class="fine" style="margin-top:-4px">اضغط على الحركة لتعديلها، أو على سلة المهملات لحذفها (وتقدر تتراجع).</p>'+recent+moreBtn+(CLOUD&&!ui.stmtOff?'<button class="btn ghost block" data-act="stmt-open">ارفع كشف حساب البنك (PDF) '+fb()+'</button>':'')+'</section></main>';
+    '<section class="blk"><h2 class="sec disp">'+(ui.showAll?'كل الحركات':'آخر الحركات')+'</h2><p class="fine" style="margin-top:-4px">اضغط على الحركة لتعديلها، أو على سلة المهملات لحذفها (وتقدر تتراجع).</p>'+recent+moreBtn+'<button class="btn ghost block" data-act="split-open">قسّم فاتورة بين الأصحاب '+fb()+'</button>'+(CLOUD&&!ui.stmtOff?'<button class="btn ghost block" data-act="stmt-open">ارفع كشف حساب البنك (PDF) '+fb()+'</button>':'')+'</section></main>';
 }
 
 function viewExtra(){
@@ -733,7 +737,7 @@ function sheetAdd(){
     '<label class="l" for="smart">'+t('writeIt')+' (تقدر تكتب أكثر من حركة)</label><div class="inl"><input class="f" id="smart" placeholder="'+ph+'">'+mic+'<button class="btn ghost" data-act="parse">افهمها</button></div><div class="hint" id="hint" aria-live="polite"></div><p class="fine" style="margin:2px 0 0">'+(voiceSupported()?'اضغط المايك وكرّر كلامك بصوت واضح. وتقدر كمان تستخدم أيقونة المايك اللي بلوحة مفاتيح موبايلك.':'التسجيل الصوتي مش متاح بهالمتصفح. استخدم أيقونة المايك اللي بلوحة مفاتيح موبايلك لتحكي بدل ما تكتب.')+'</p><div id="multi"></div>'+
     (ed?'':CLOUD?(ui.stmtOff?'':'<button class="btn ghost small" data-act="stmt-open" style="margin-top:6px">ارفع كشف حساب البنك (PDF) '+fb()+'</button>'):'<button class="btn ghost small" data-act="paste-mode" style="margin-top:6px">الصق نصاً: رسالة بنك أو كشف حساب '+fb()+'</button><div id="pastewrap" style="display:none"><textarea class="f" id="paste-in" rows="5" style="margin-top:8px" placeholder="الصق هنا رسالة البنك، أو أسطراً من كشف الحساب، أو نص الفاتورة"></textarea><button class="btn block" data-act="paste-go">حلّل النص</button></div>')+
     (ed||!CLOUD||ui.scanOff?'':'<button class="btn ghost small" data-act="scan-open" style="margin-top:6px">صوّر الفاتورة '+fb()+'</button><input type="file" id="scan-in" accept="image/*" style="display:none">')+
-    '<div id="scanbox"></div>'+
+    '<div id="scanbox"></div>'+(ed?'':'<button class="btn ghost small" data-act="split-open" style="margin-top:6px">قسّم فاتورة بين الأصحاب '+fb()+'</button>')+
     '<div class="seg"><button data-act="set-type" data-t="exp" class="on">مصروف</button><button data-act="set-type" data-t="inc">'+incLbl+'</button></div>'+
     '<label class="l" for="f-amt">المبلغ ('+C().cur+')</label><input class="f" id="f-amt" inputmode="decimal" placeholder="0">'+
     '<div id="catwrap"><label class="l" for="f-cat">التصنيف</label><select class="f" id="f-cat">'+cs+'</select></div>'+
@@ -797,7 +801,7 @@ function render(){
   if(ui.screen==='country'){app.innerHTML=E(viewCountry());return}
   if(ui.screen==='persona'){app.innerHTML=E(viewPersona());return}
   var v=ui.tab==='home'?viewHome():ui.tab==='extra'?viewExtra():ui.tab==='advisor'?viewAdvisor():viewAccount();
-  app.innerHTML=E(v)+navHTML()+(ui.sheet==='add'?sheetAdd():ui.sheet==='report'?sheetReport():ui.sheet==='stmt'?sheetStmt():ui.sheet==='fb'?sheetFb():'');
+  app.innerHTML=E(v)+navHTML()+(ui.sheet==='add'?sheetAdd():ui.sheet==='report'?sheetReport():ui.sheet==='stmt'?sheetStmt():ui.sheet==='fb'?sheetFb():ui.sheet==='split'?sheetSplit():'');
   if(anim)countUp();
   if(ui.sheet==='stmt'&&ui.stmt&&ui.stmt.phase==='review')stmtSetCount();
   if(ui.sheet==='add'){var sm=$('#smart');if(sm)sm.focus()}
@@ -1236,6 +1240,166 @@ function reportError(kind,msg,stack){
     Promise.resolve(sb.rpc('log_client_error',{p_message:kind+': '+m,p_stack:String(stack||'').replace(/\d{6,}/g,'#').slice(0,800),p_meta:meta})).catch(function(){});
   }catch(e){}
 }
+/* ---------- تقسيم الفاتورة (الحساب كله بالكود وبأصغر وحدة نقدية) ---------- */
+var BIGOK=(typeof BigInt==='function');
+function allocate(A,weights){
+  var n=weights.length,W=0;weights.forEach(function(w){W+=w});
+  if(W===0){weights=weights.map(function(){return 1});W=n}
+  if(!A)return weights.map(function(){return 0});
+  var out=[],used=0,fr=[];
+  weights.forEach(function(w,i){
+    var q,r;
+    if(BIGOK){var x=BigInt(A)*BigInt(w);q=Number(x/BigInt(W));r=Number(x%BigInt(W))}
+    else{var xx=A*w;q=Math.floor(xx/W);r=xx-q*W}
+    out.push(q);used+=q;fr.push({i:i,r:r});
+  });
+  var left=A-used;fr.sort(function(a,b){return b.r-a.r||a.i-b.i});
+  for(var k=0;k<left;k++)out[fr[k%n].i]+=1;
+  return out;
+}
+function splitToM(v){var n=Number(String(v===null||v===undefined?'':v).replace(',','.'));return isFinite(n)?Math.round(n*Math.pow(10,C().dec)):0}
+function splitCalc(sp){
+  var f=Math.pow(10,C().dec),ids=sp.people.map(function(p){return p.id}),sub=ids.map(function(){return 0}),itemsSum=0,unassigned=0,unIdx=[];
+  sp.items.forEach(function(it,ix){
+    var L=splitToM(it.total);itemsSum+=L;
+    var who=ids.filter(function(id){return it.who.indexOf(id)>-1});
+    if(!who.length){unassigned+=L;unIdx.push(ix);return}
+    var parts=allocate(L,who.map(function(){return 1}));
+    who.forEach(function(id,k){sub[ids.indexOf(id)]+=parts[k]});
+  });
+  var extras=[];
+  sp.extras.forEach(function(e){if(e.inc){var A=splitToM(e.amount);if(A)extras.push(e.kind==='discount'?-A:A)}});
+  var tip=splitToM(sp.tip);if(tip)extras.push(tip);
+  var share=ids.map(function(){return 0});
+  extras.forEach(function(A){
+    var w=sp.mode==='eq'?ids.map(function(){return 1}):sub.slice(),parts=allocate(Math.abs(A),w),sg=A<0?-1:1;
+    parts.forEach(function(v,i){share[i]+=sg*v});
+  });
+  var total=sub.map(function(v,i){return v+share[i]}),extrasSum=extras.reduce(function(a,b){return a+b},0),expected=itemsSum+extrasSum;
+  var rt=(sp.meta&&sp.meta.total!==null&&sp.meta.total!==undefined)?splitToM(sp.meta.total):null;
+  return {f:f,sub:sub,share:share,total:total,itemsSum:itemsSum,extrasSum:extrasSum,expected:expected,unassigned:unassigned,unIdx:unIdx,receiptTotal:rt,diff:rt===null?null:rt-expected};
+}
+function splitAutoExtras(sp){
+  var rt=(sp.meta&&sp.meta.total!==null&&sp.meta.total!==undefined)?splitToM(sp.meta.total):null,k=sp.extras.length;
+  if(rt===null||!k||k>8)return;
+  var f=Math.pow(10,C().dec),tol=Math.max(1,Math.round(0.006*f)),itemsM=sp.items.reduce(function(a,it){return a+splitToM(it.total)},0),masks=[];
+  for(var m=0;m<(1<<k);m++){var c=0;for(var b=0;b<k;b++)if(m&(1<<b))c++;masks.push({m:m,c:c})}
+  masks.sort(function(a,b){return b.c-a.c});
+  for(var i=0;i<masks.length;i++){
+    var sum=itemsM;
+    for(var j=0;j<k;j++)if(masks[i].m&(1<<j)){var A=splitToM(sp.extras[j].amount);sum+=sp.extras[j].kind==='discount'?-A:A}
+    if(Math.abs(sum-rt)<=tol){for(var q=0;q<k;q++)sp.extras[q].inc=!!(masks[i].m&(1<<q));return}
+  }
+}
+function splitFresh(items,meta,extras){
+  return {phase:'edit',people:[{id:'p1',name:'أنا',me:true},{id:'p2',name:'شخص 2'}],items:items||[],extras:extras||[],tip:'',mode:'prop',meta:meta||{},msg:''};
+}
+function splitNewId(prefix,list){var n=list.length+1,ids=list.map(function(x){return x.id});while(ids.indexOf(prefix+n)>-1)n++;return prefix+n}
+function splitSummaryHTML(){
+  var sp=ui.split,c=splitCalc(sp),f=c.f,m=function(v){return amt(v/f)},h='<div class="sp-sum">';
+  sp.people.forEach(function(p,i){
+    h+='<div class="row-i"><div class="t"><b>'+esc(p.name)+'</b><small>الأصناف '+fmt(c.sub[i]/f)+(c.share[i]?' · ضريبة وخدمة وغيرها '+(c.share[i]<0?'−':'')+fmt(Math.abs(c.share[i])/f):'')+'</small></div><span style="font-weight:700;font-size:18px">'+m(c.total[i])+'</span></div>';
+  });
+  var sumP=c.total.reduce(function(a,b){return a+b},0);
+  h+='<p class="fine" style="margin:6px 0">مجموع الحصص: '+fmt(sumP/f)+' '+C().cur+'</p></div>';
+  if(c.unIdx.length)h+='<div class="chk warn">'+c.unIdx.length+' صنف ما انوزّع على أحد ('+fmt(c.unassigned/f)+' '+C().cur+'). <button class="btn ghost small" data-act="split-dist-rest">وزّعهم على الجميع بالتساوي</button></div>';
+  if(c.diff!==null){
+    var tol=Math.max(1,Math.round(0.006*f));
+    h+=Math.abs(c.diff)<=tol?'<div class="chk ok">المجموع مطابق لإجمالي الفاتورة ('+fmt(c.receiptTotal/f)+' '+C().cur+').</div>':
+      '<div class="chk warn">فرق '+fmt(Math.abs(c.diff)/f)+' '+C().cur+' بين الأصناف والإضافات وإجمالي الفاتورة ('+fmt(c.receiptTotal/f)+'). راجع الأسعار أو خيارات الضريبة والخدمة.</div>';
+  }
+  return h;
+}
+function splitRefresh(){var b=$('#split-sum');if(b)b.innerHTML=splitSummaryHTML()}
+function splitShareText(){
+  var sp=ui.split,c=splitCalc(sp),f=c.f,nm=String((S&&S.name)||'').trim().split(/\s+/)[0]||'أنا',cn=C().cn;
+  var lines=['فاتورة'+(sp.meta.merchant?' '+sp.meta.merchant:'')+(sp.meta.date?' ('+sp.meta.date+')':'')+' — الإجمالي '+fmt((c.itemsSum+c.extrasSum)/f)+' '+cn,''];
+  sp.people.forEach(function(p,i){lines.push('• '+(p.me?nm:p.name)+': '+fmt(c.total[i]/f)+' '+cn)});
+  lines.push('','(حصة كل واحد حسب أصنافه + نصيبه من الضريبة والخدمة)');
+  return lines.join('\n');
+}
+function sheetSplit(){
+  var sp=ui.split||{phase:'start'},h='';
+  if(sp.phase==='consent'){
+    h='<div class="lockbox"><h3>قبل ما تصوّر</h3><p class="fine" style="margin:0 0 8px">لما تصوّر الفاتورة، بنرسل الصورة لـ Google (نموذج Gemini) عشان يقرأ الأصناف والأسعار. صوّر الفاتورة فقط وتجنّب إظهار بيانات شخصية. ما بنحفظ الصورة عندنا. بالنسخة المجانية عند Google ممكن تستخدم الطلبات لتحسين منتجاتها. <a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p><button class="btn block" data-act="split-consent">موافق، صوّر</button><button class="btn ghost block" data-act="split-close">لا، شكراً</button></div>';
+  }else if(sp.phase==='loading'){
+    h='<p class="muted" style="text-align:center;padding:30px 0">جاري قراءة الفاتورة… ممكن ياخد نص دقيقة.</p>';
+  }else if(sp.phase==='edit'){
+    h=splitEditHTML();
+  }else{
+    h='<p class="fine" style="margin:0 0 8px">صوّر الفاتورة، وحدّد مين أكل شو، وبيطلع كم على كل واحد مع حصته من الضريبة والخدمة. الحساب بيتم بالكود وإنت بتراجع كل رقم.</p>'+
+      (CLOUD&&!ui.billOff?'<button class="btn block" data-act="split-photo">صوّر الفاتورة</button><input type="file" id="split-in" accept="image/*" style="display:none">':'')+
+      '<button class="btn ghost block" data-act="split-manual">أدخل الأصناف يدوياً</button>'+
+      (sp.msg?'<div class="hint err" aria-live="polite" style="margin-top:10px">'+esc(sp.msg)+'</div>':'');
+  }
+  return '<div class="scrim" data-act="split-close"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="تقسيم فاتورة"><div class="grab"></div><h2 class="disp">تقسيم فاتورة '+fb()+'</h2>'+h+'</section>';
+}
+function splitEditHTML(){
+  var sp=ui.split,dec=C().dec,h='';
+  if(sp.meta&&(sp.meta.merchant||sp.meta.date))h+='<p class="fine" style="margin:0 0 6px">'+esc(sp.meta.merchant||'')+(sp.meta.date?' · '+esc(sp.meta.date):'')+(sp.meta.total!==null&&sp.meta.total!==undefined?' · إجمالي الفاتورة '+fmt(sp.meta.total)+' '+C().cur:'')+'</p>';
+  if(sp.meta&&sp.meta.includesTax===true)h+='<p class="fine" style="margin:0 0 6px">الأسعار على ما يبدو شاملة الضريبة.</p>';
+  h+='<h3 style="margin:8px 0 4px;font-size:17px">مين معك؟</h3><div class="chips">'+sp.people.map(function(p){
+    return '<span class="pill">'+esc(p.name)+' <button class="x" data-act="split-ren-person" data-p="'+p.id+'" aria-label="تعديل الاسم">✎</button>'+(p.me?'':'<button class="x" data-act="split-del-person" data-p="'+p.id+'" aria-label="حذف">×</button>')+'</span>';
+  }).join('')+'<button class="btn ghost small" data-act="split-add-person">+ شخص</button></div>';
+  h+='<h3 style="margin:14px 0 4px;font-size:17px">الأصناف (اضغط اسم الشخص لمين أكل الصنف)</h3>';
+  h+=sp.items.map(function(it,i){
+    return '<div class="sp-item"><div class="inl"><input class="f" data-act="split-iname" data-i="'+i+'" value="'+esc(it.name)+'" placeholder="اسم الصنف" aria-label="اسم الصنف"><input class="f" data-act="split-iprice" data-i="'+i+'" inputmode="decimal" style="max-width:110px" value="'+(it.total===''||it.total===null?'':Number(it.total).toFixed(dec))+'" placeholder="السعر" aria-label="السعر"><button class="x" data-act="split-del-item" data-i="'+i+'" aria-label="حذف الصنف">×</button></div>'+
+      '<div class="chips">'+sp.people.map(function(p){return '<button class="qchip'+(it.who.indexOf(p.id)>-1?' on':'')+'" data-act="split-toggle" data-i="'+i+'" data-p="'+p.id+'">'+esc(p.name)+'</button>'}).join('')+'</div></div>';
+  }).join('')||'<div class="empty">ما في أصناف. أضف صنف.</div>';
+  h+='<div class="chips" style="margin:8px 0"><button class="btn ghost small" data-act="split-add-item">+ صنف</button><button class="btn ghost small" data-act="split-all">كل الأصناف للجميع بالتساوي</button></div>';
+  if(sp.extras.length)h+='<h3 style="margin:14px 0 4px;font-size:17px">الضريبة والخدمة</h3>'+sp.extras.map(function(e,i){
+    return '<div class="inl" style="align-items:center;margin-bottom:6px"><label class="rep" style="margin:0;flex:1"><input type="checkbox" data-act="split-einc" data-i="'+i+'" '+(e.inc?'checked':'')+'> '+esc(e.label)+(e.kind==='discount'?' (خصم)':'')+'</label><input class="f" data-act="split-eamt" data-i="'+i+'" inputmode="decimal" style="max-width:110px" value="'+Number(e.amount).toFixed(dec)+'" aria-label="المبلغ"></div>';
+  }).join('');
+  h+='<div class="inl" style="align-items:center;margin:8px 0"><span style="flex:1">إكرامية (اختياري)</span><input class="f" data-act="split-tip" inputmode="decimal" style="max-width:110px" value="'+esc(sp.tip)+'" placeholder="0" aria-label="إكرامية"></div>';
+  h+='<div class="inl" style="align-items:center;margin:8px 0"><span style="flex:1">توزيع الضريبة والخدمة</span><select class="f" data-act="split-mode" style="max-width:170px" aria-label="طريقة التوزيع"><option value="prop"'+(sp.mode==='prop'?' selected':'')+'>بالنسبة لأصناف كل واحد</option><option value="eq"'+(sp.mode==='eq'?' selected':'')+'>بالتساوي</option></select></div>';
+  h+='<div id="split-sum">'+splitSummaryHTML()+'</div>';
+  h+='<button class="btn block" data-act="split-share">شارك الحساب بواتساب</button><button class="btn ghost block" data-act="split-save-me">سجّل حصتي كمصروف</button><button class="btn ghost block" data-act="split-reset">فاتورة ثانية</button>';
+  return h;
+}
+function splitFile(file){
+  if(!file||ui.splitBusy)return;
+  ui.splitBusy=true;ui.split={phase:'loading'};render();
+  var cats=PCATS[S.persona].map(function(k){return {k:k,n:CATS[k].n}});
+  prepareImage(file).then(function(b64){
+    return Promise.resolve(sb.auth.getSession()).then(function(r){
+      var ss=r&&r.data&&r.data.session;if(!ss)throw {code:'auth'};
+      return fetch('/api/bill',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ss.access_token},body:JSON.stringify({image:b64,mime:'image/jpeg',currency:C().cn})});
+    });
+  }).then(function(resp){
+    return resp.json().catch(function(){return {}}).then(function(j){return {status:resp.status,j:j||{}}});
+  }).then(function(o){
+    var j=o.j;
+    if(o.status===200&&Array.isArray(j.items)&&j.items.length){
+      var items=j.items.map(function(it,i){return {id:'i'+(i+1),name:(it.qty>1?it.qty+'× ':'')+it.name,total:it.total,who:[]}});
+      var extras=(j.extras||[]).map(function(e){return {label:e.label,kind:e.kind,amount:e.amount,inc:true}});
+      var meta={merchant:j.merchant||'',date:j.date||null,total:j.check&&j.check.total!==undefined?j.check.total:null,includesTax:j.includesTax};
+      ui.split=splitFresh(items,meta,extras);splitAutoExtras(ui.split);return;
+    }
+    var m='صار خطأ. جرّب مرة ثانية، أو أدخل الأصناف يدوياً.';
+    if(o.status===422)m='ما قدرت أقرأ الفاتورة. جرّب صورة أوضح (الفاتورة كاملة وبدون ظل)، أو أدخل الأصناف يدوياً.';
+    else if(o.status===429)m=j.reason==='global'?'قراءة الفواتير مشغولة اليوم. جرّب بكرة، أو أدخل الأصناف يدوياً.':'خلص حدك اليومي لقراءة فواتير التقسيم. بيتجدد بكرة، أو أدخل الأصناف يدوياً.';
+    else if(o.status===503&&j.error==='ai_not_configured'){ui.billOff=true;m='قراءة الفواتير غير مفعّلة حالياً. أدخل الأصناف يدوياً.'}
+    else if(o.status===401)m='انتهت جلستك. سجّل دخولك من جديد.';
+    else if(o.status===503||o.status===502)m='الخدمة مشغولة لحظة. جرّب بعد دقيقة، أو أدخل الأصناف يدوياً.';
+    ui.split={phase:'start',msg:m};
+    if(o.status>=500&&!(j.error==='ai_not_configured'))reportError('api','bill '+(j.error||'')+' '+o.status);
+  }).catch(function(e){
+    ui.split={phase:'start',msg:e&&e.code==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':e&&e.code==='big'?'الصورة كبيرة كتير.':e&&e.code==='read'?'ما قدرت أفتح الصورة.':'تعذّر الاتصال. جرّب مرة ثانية.'};
+  }).then(function(){ui.splitBusy=false;render()});
+}
+function splitField(el){
+  var sp=ui.split;if(!sp||sp.phase!=='edit')return false;
+  var act=el.getAttribute&&el.getAttribute('data-act');if(!act||act.indexOf('split-')!==0)return false;
+  var i=parseInt(el.getAttribute('data-i'),10);
+  if(act==='split-iname'&&sp.items[i])sp.items[i].name=String(el.value||'').slice(0,60);
+  else if(act==='split-iprice'&&sp.items[i]){var n=toNum(el.value);sp.items[i].total=isNaN(n)?0:Math.max(0,n)}
+  else if(act==='split-eamt'&&sp.extras[i]){var n2=toNum(el.value);sp.extras[i].amount=isNaN(n2)?0:Math.max(0,n2)}
+  else if(act==='split-einc'&&sp.extras[i])sp.extras[i].inc=!!el.checked;
+  else if(act==='split-tip')sp.tip=String(el.value||'').slice(0,12);
+  else if(act==='split-mode')sp.mode=el.value==='eq'?'eq':'prop';
+  else return false;
+  splitRefresh();return true;
+}
 function pickDate(){
   var el=$('#f-date'),v=el&&el.value;
   if(!v||!/^\d{4}-\d{2}-\d{2}$/.test(v)||v>TODAY)return TODAY;
@@ -1459,7 +1623,7 @@ document.addEventListener('click',function(e){
   if(a==='month'){var m=el.getAttribute('data-m');if(m){ui.month=m;ui.proMsg=false;ui.delArm=false;render()}return}
   if(a==='open-add'){ui.editId=null;ui.multi=[];ui.sheet='add';ui.addType='exp';render();return}
   if(a==='open-report'){ui.sheet='report';ui.delArm=false;ui.proMsg=false;ui.proOut='';ui.proSel=[];render();return}
-  if(a==='close-sheet'){ui.sheet=null;ui.editId=null;ui.multi=[];ui.stmt=null;render();return}
+  if(a==='close-sheet'){ui.sheet=null;ui.editId=null;ui.multi=[];ui.stmt=null;ui.split=null;render();return}
   if(a==='set-type'){setType(el.getAttribute('data-t'));return}
   if(a==='parse'){doParse();return}
   if(a==='multi-del'){ui.multi.splice(+el.getAttribute('data-i'),1);showMulti();return}
@@ -1570,6 +1734,42 @@ document.addEventListener('click',function(e){
     if(CLOUD){pushCloud().then(function(){return sb.auth.signOut()}).catch(function(){toast('تعذّر تسجيل الخروج')});return}
     setSession(null);S=null;ui.returning=true;ui.pre={country:null,persona:null};ui.sheet=null;ui.chat=[];render();return;
   }
+  if(a==='split-open'){ui.sheet='split';ui.split={phase:'start'};render();return}
+  if(a==='split-close'){if(ui.splitBusy)return;ui.sheet=null;ui.split=null;render();return}
+  if(a==='split-photo'){if(S.scanConsent!==true){ui.split={phase:'consent'};render();return}var spf=$('#split-in');if(spf)spf.click();return}
+  if(a==='split-consent'){S.scanConsent=true;saveUser();ui.split={phase:'start'};render();var spf2=$('#split-in');if(spf2)spf2.click();return}
+  if(a==='split-manual'){ui.split=splitFresh([{id:'i1',name:'',total:'',who:[]}],{});render();return}
+  if(a==='split-reset'){ui.split={phase:'start'};render();return}
+  if(a==='split-add-person'){
+    var sp0=ui.split;if(!sp0||sp0.people.length>=12){toast('الحد الأقصى 12 شخص');return}
+    var nm0=window.prompt('اسم الشخص',''),nid=splitNewId('p',sp0.people);
+    sp0.people.push({id:nid,name:String(nm0||'').trim().slice(0,20)||'شخص '+(sp0.people.length+1)});render();return;
+  }
+  if(a==='split-ren-person'){
+    var sp1=ui.split,pp1=sp1&&sp1.people.filter(function(x){return x.id===el.getAttribute('data-p')})[0];if(!pp1)return;
+    var nm1=window.prompt('اسم الشخص',pp1.name);if(nm1===null)return;pp1.name=String(nm1).trim().slice(0,20)||pp1.name;render();return;
+  }
+  if(a==='split-del-person'){
+    var sp2=ui.split,pid=el.getAttribute('data-p');if(!sp2||sp2.people.length<=1)return;
+    sp2.people=sp2.people.filter(function(x){return x.id!==pid||x.me});sp2.items.forEach(function(it){it.who=it.who.filter(function(w){return w!==pid})});render();return;
+  }
+  if(a==='split-toggle'){
+    var sp3=ui.split,it3=sp3&&sp3.items[parseInt(el.getAttribute('data-i'),10)],pid3=el.getAttribute('data-p');if(!it3)return;
+    var ix3=it3.who.indexOf(pid3);if(ix3>-1)it3.who.splice(ix3,1);else it3.who.push(pid3);
+    el.classList.toggle('on',ix3<0);splitRefresh();return;
+  }
+  if(a==='split-all'){var sp4=ui.split;if(!sp4)return;var all=sp4.people.map(function(x){return x.id});sp4.items.forEach(function(it){it.who=all.slice()});render();return}
+  if(a==='split-dist-rest'){var sp5=ui.split;if(!sp5)return;var all5=sp5.people.map(function(x){return x.id});sp5.items.forEach(function(it){if(!it.who.length)it.who=all5.slice()});render();return}
+  if(a==='split-add-item'){var sp6=ui.split;if(!sp6||sp6.items.length>=80)return;sp6.items.push({id:splitNewId('i',sp6.items),name:'',total:'',who:[]});render();return}
+  if(a==='split-del-item'){var sp7=ui.split;if(!sp7)return;sp7.items.splice(parseInt(el.getAttribute('data-i'),10),1);render();return}
+  if(a==='split-share'){var sp8=ui.split;if(!sp8)return;window.open('https://wa.me/?text='+encodeURIComponent(splitShareText()),'_blank','noopener');return}
+  if(a==='split-save-me'){
+    var sp9=ui.split;if(!sp9)return;
+    var c9=splitCalc(sp9),mi=sp9.people.map(function(x){return !!x.me}).indexOf(true);if(mi<0)mi=0;
+    var mine=c9.total[mi]/c9.f;if(!(mine>0)){toast('حصتك صفر. وزّع الأصناف أول.');return}
+    ui.split=null;
+    addTx([{type:'exp',cat:PCATS[S.persona].indexOf('food')>-1?'food':'other',amt:mine,note:(sp9.meta&&sp9.meta.merchant)||'فاتورة مشتركة',date:(sp9.meta&&sp9.meta.date)||TODAY}],'تم تسجيل حصتك: '+fmt(mine)+' '+C().cur);return;
+  }
   if(a==='onb-hide'){S.onbHidden=true;saveUser();render();return}
   if(a==='fb-open'){ui.fbKind='idea';ui.sheet='fb';render();return}
   if(a==='fb-close'){ui.sheet=null;render();return}
@@ -1602,6 +1802,8 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
   var el=e.target;
+  if(el&&el.id==='split-in'){var spfile=el.files&&el.files[0];if(spfile)splitFile(spfile);try{el.value=''}catch(x){}return}
+  if(splitField(el))return;
   if(el&&el.id==='stmt-in'){var sf=el.files&&el.files[0];if(sf)stmtFile(sf);try{el.value=''}catch(x){}return}
   if(el&&el.getAttribute&&el.getAttribute('data-act')==='stmt-toggle'&&ui.stmt&&ui.stmt.rows){ui.stmt.rows[+el.getAttribute('data-i')].sel=!!el.checked;stmtSetCount();return}
   if(el&&el.getAttribute&&el.getAttribute('data-act')==='stmt-cat'&&ui.stmt&&ui.stmt.rows){ui.stmt.rows[+el.getAttribute('data-i')].cat=el.value;return}
@@ -1610,7 +1812,7 @@ document.addEventListener('change',function(e){
     payBill(el.getAttribute('data-id'),el.checked);
   }
 });
-document.addEventListener('input',function(e){if(e.target&&e.target.id==='q-in')ui.draft=e.target.value});
+document.addEventListener('input',function(e){if(e.target&&e.target.id==='q-in')ui.draft=e.target.value;if(e.target&&e.target.getAttribute&&/^split-(iprice|eamt|tip)$/.test(e.target.getAttribute('data-act')||''))splitField(e.target)});
 document.addEventListener('keydown',function(e){
   if((e.key==='Enter'||e.key===' ')&&e.target&&e.target.getAttribute&&e.target.getAttribute('data-act')==='edit-tx'){e.preventDefault();e.target.click()}
   if(e.key==='Enter'&&e.target&&e.target.id==='smart'){e.preventDefault();var b=document.querySelector('[data-act="parse"]');if(b)b.click()}
