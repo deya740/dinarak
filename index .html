@@ -188,6 +188,16 @@ nav.nav .add svg{stroke:var(--accent-ink);width:26px;height:26px}
 .flag{background:var(--accent-soft);border-radius:999px;padding:0 8px;font-size:11.5px;color:var(--ink)}
 .rep{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:14.5px}
 .rep input{width:20px;height:20px;accent-color:var(--accent)}
+.btn.rec{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn.rec svg{stroke:#fff}
+@media (prefers-reduced-motion: no-preference){.btn.rec{animation:recpulse 1.1s infinite}@keyframes recpulse{0%{box-shadow:0 0 0 0 rgba(192,57,43,.55)}100%{box-shadow:0 0 0 12px rgba(192,57,43,0)}}}
+.onb{background:var(--surface);border:1.5px solid var(--accent);border-radius:16px;padding:12px 14px;margin-bottom:16px}
+.onb h3{margin:0;font-size:23px;font-family:'Lalezar',sans-serif;font-weight:400}
+.onb .i{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1.5px dashed var(--line)}
+.onb .ck{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none;color:var(--muted)}
+.onb .ck.ok{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.onb .t{flex:1;min-width:0}.onb .t b{display:block;font-weight:600;font-size:15.5px}.onb .t small{color:var(--muted);font-size:13px}
+.onb .done b{text-decoration:line-through;opacity:.6}
 .flag.warn{background:color-mix(in srgb,var(--bad) 20%,var(--surface))}
 .chk{border-radius:12px;padding:8px 12px;font-size:14px;margin:8px 0;border:1.5px solid var(--line)}
 .chk.ok{border-color:var(--good);color:var(--good)}
@@ -340,7 +350,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -603,7 +613,7 @@ function viewHome(){
   var recent=s.m.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0}).slice(0,ui.showAll?500:10).map(txRow).join('')||'<div class="empty">ما في حركات.</div>';
   var moreBtn=s.m.length>10?'<button class="btn ghost block" data-act="toggle-all">'+(ui.showAll?'إخفاء':'عرض كل حركات الشهر ('+s.m.length+')')+'</button>':'';
   var yy=ui.month.slice(0,4), mm=ui.month.slice(5,7);
-  return '<main class="shell">'+topbar()+launchBanner()+monthBar()+
+  return '<main class="shell">'+topbar()+launchBanner()+onbCard()+monthBar()+
     '<div class="note">'+guil(360,230,20,78,0.045,1)+wmk()+'<span class="shine"></span><span class="sheen"></span><div class="in"><div class="cn"><span>'+heroLbl+'</span><span dir="ltr">'+yy+' / '+mm+'</span></div>'+
     '<div class="big"><bdi dir="ltr" class="amt" data-count="'+s.rem+'">'+fmt(s.rem)+'</bdi><span class="cur">'+C().cur+'</span></div>'+
     '<div class="sub"><div><small>'+(p==='merchant'?'مبيعات':'دخل')+'</small><b>'+amt(s.inc)+'</b></div><div><small>مصاريف</small><b>'+amt(s.exp)+'</b></div></div></div></div>'+
@@ -718,9 +728,9 @@ function sheetAdd(){
   var ph=D()==='egy'?'مثلاً: غدا 7 وبنزين 20 وقهوة 3':D()==='gulf'?'مثلاً: غداء 7 وبنزين 20 وقهوة 3':'مثلاً: غداء 7 وبنزين 20 وقهوة 3';
   var q='';
   if(!ed){quickItems();if(ui.quick.length)q='<p class="fine" style="margin:8px 0 6px">بنقرة وحدة (من حركاتك المتكررة):</p><div class="chips">'+ui.quick.map(function(o,i){return '<button class="qchip" data-act="quick" data-i="'+i+'">'+esc(o.note)+' · '+fmt(o.amt)+'</button>'}).join('')+'</div>'}
-  var mic=(window.SpeechRecognition||window.webkitSpeechRecognition)?'<button class="btn ghost" data-act="mic" aria-label="تسجيل صوتي">'+icon('mic')+'</button>':'';
+  var mic=voiceSupported()?'<button class="btn ghost" id="mic-btn" data-act="mic" aria-label="تسجيل صوتي">'+icon('mic')+'<span id="mic-txt"></span></button>':'';
   return '<div class="scrim" data-act="close-sheet"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="سجّل حركة"><div class="grab"></div><h2 class="disp">'+(ed?'تعديل حركة':'سجّل حركة')+'</h2>'+q+
-    '<label class="l" for="smart">'+t('writeIt')+' (تقدر تكتب أكثر من حركة)</label><div class="inl"><input class="f" id="smart" placeholder="'+ph+'">'+mic+'<button class="btn ghost" data-act="parse">افهمها</button></div><div class="hint" id="hint" aria-live="polite"></div><div id="multi"></div>'+
+    '<label class="l" for="smart">'+t('writeIt')+' (تقدر تكتب أكثر من حركة)</label><div class="inl"><input class="f" id="smart" placeholder="'+ph+'">'+mic+'<button class="btn ghost" data-act="parse">افهمها</button></div><div class="hint" id="hint" aria-live="polite"></div><p class="fine" style="margin:2px 0 0">'+(voiceSupported()?'اضغط المايك وكرّر كلامك بصوت واضح. وتقدر كمان تستخدم أيقونة المايك اللي بلوحة مفاتيح موبايلك.':'التسجيل الصوتي مش متاح بهالمتصفح. استخدم أيقونة المايك اللي بلوحة مفاتيح موبايلك لتحكي بدل ما تكتب.')+'</p><div id="multi"></div>'+
     (ed?'':CLOUD?(ui.stmtOff?'':'<button class="btn ghost small" data-act="stmt-open" style="margin-top:6px">ارفع كشف حساب البنك (PDF) '+fb()+'</button>'):'<button class="btn ghost small" data-act="paste-mode" style="margin-top:6px">الصق نصاً: رسالة بنك أو كشف حساب '+fb()+'</button><div id="pastewrap" style="display:none"><textarea class="f" id="paste-in" rows="5" style="margin-top:8px" placeholder="الصق هنا رسالة البنك، أو أسطراً من كشف الحساب، أو نص الفاتورة"></textarea><button class="btn block" data-act="paste-go">حلّل النص</button></div>')+
     (ed||!CLOUD||ui.scanOff?'':'<button class="btn ghost small" data-act="scan-open" style="margin-top:6px">صوّر الفاتورة '+fb()+'</button><input type="file" id="scan-in" accept="image/*" style="display:none">')+
     '<div id="scanbox"></div>'+
@@ -779,6 +789,7 @@ function render(){
   if(S&&S.persona&&S.billsMonth!==MONTH){S.bills.forEach(function(b){b.paid=false});S.billsMonth=MONTH;saveUser()}
   if(S&&S.persona&&ui.screen==='app'){var rmade=applyRecurring();if(rmade){saveUser();toast('تمت إضافة '+rmade+' حركة متكررة')}}
   if(S&&S.persona&&ui.screen==='app')root.setAttribute('data-persona',S.persona);else root.removeAttribute('data-persona');
+  if(ui.sheet!=='add'&&ui.listening)stopVoice();
   var key=ui.screen+'|'+ui.tab+'|'+ui.month+'|'+(S?S.persona:''), anim=key!==ui.lastKey;ui.lastKey=key;
   function E(h){return anim?h.replace('<main class="shell','<main class="shell enter'):h}
   if(ui.screen==='loading'){app.innerHTML=E(viewLoading());return}
@@ -992,6 +1003,7 @@ function stmtRun(extra){
     else if(o.status===413)m='الملف كبير. جرّب كشف شهر واحد أو أقصر.';
     else if(o.status===503||o.status===502)m='الخدمة مشغولة لحظة. جرّب بعد دقيقة. (هالمحاولة انحسبت من حدك اليومي)';
     ui.stmt={phase:'upload',msg:m};
+    if(o.status>=500&&!(j.error==='ai_not_configured'))reportError('api','statement '+(j.error||'')+' '+o.status);
   }).catch(function(e){
     ui.stmt={phase:'upload',msg:e&&e.code==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':e&&e.code==='big'?'الصورة كبيرة كتير.':e&&e.code==='read'?'ما قدرت أفتح الملف.':'تعذّر الاتصال. جرّب مرة ثانية.'};
   }).then(function(){ui.stmtBusy=false;render()});
@@ -1164,6 +1176,66 @@ function switchBook(np){
   ui.tab='home';ui.chat=[];ui.month=MONTH;ui.stmt=null;ui.sheet=null;
   saveUser();return true;
 }
+function voiceSupported(){return !!(typeof window!=='undefined'&&(window.SpeechRecognition||window.webkitSpeechRecognition))}
+function voiceHint(t,err){var h=$('#hint');if(h){h.textContent=t;h.className='hint'+(err?' err':'')}}
+function setVoiceUI(on){var b=$('#mic-btn');if(b){b.classList.toggle('rec',!!on);b.setAttribute('aria-label',on?'إيقاف التسجيل':'تسجيل صوتي')}var m=$('#mic-txt');if(m)m.textContent=on?' إيقاف':''}
+function stopVoice(){clearTimeout(ui.recTimer);if(ui.rec){try{ui.rec.stop()}catch(e){}}}
+function startVoice(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){voiceHint('التسجيل الصوتي مش متاح بهالمتصفح. استخدم أيقونة المايك اللي بلوحة مفاتيح موبايلك.',true);return}
+  if(ui.listening){stopVoice();return}
+  var langs=[LANGS[(S&&S.country)||'JO'],'ar-SA','ar'],li=0;
+  var iosApp=!!(typeof navigator!=='undefined'&&navigator.standalone);
+  function run(){
+    var rc,got=false,heard=false,failed=false;
+    try{rc=new SR()}catch(e){voiceHint('تعذّر تشغيل التسجيل الصوتي.',true);return}
+    rc.lang=langs[li];rc.interimResults=true;rc.continuous=false;rc.maxAlternatives=1;
+    ui.rec=rc;try{window.__dinarakRec=rc}catch(e){}
+    rc.onstart=function(){if(ui.rec!==rc)return;ui.listening=true;setVoiceUI(true);voiceHint('جاري الاستماع… احكي هلأ (مثلاً: غداء 7 وبنزين 20)')};
+    rc.onspeechstart=function(){if(ui.rec!==rc)return;heard=true;voiceHint('سمعتك… كمّل، ولما تخلص اضغط إيقاف.')};
+    rc.onresult=function(ev){
+      if(ui.rec!==rc)return;
+      var txt='';for(var k=0;k<ev.results.length;k++){txt+=ev.results[k][0].transcript+' '}
+      txt=txt.trim();var inp=$('#smart');if(inp)inp.value=txt;heard=true;
+      var last=ev.results[ev.results.length-1];
+      if(last&&last.isFinal){got=true;voiceHint('سمعت: «'+txt+'»');doParse()}else voiceHint('عم أكتب اللي بتقوله… «'+txt+'»');
+    };
+    rc.onerror=function(ev){
+      if(ui.rec!==rc)return;
+      var er=ev&&ev.error;
+      if(er==='language-not-supported'&&li<langs.length-1){li++;run();return}
+      failed=true;
+      if(er==='aborted')return;
+      var m=er==='no-speech'?'ما سمعت صوت. قرّب من المايك، وابدأ احكي بعد ما يظهر "جاري الاستماع".':
+        er==='audio-capture'?'ما لقيت مايك على جهازك.':
+        (er==='not-allowed'||er==='service-not-allowed')?(iosApp?'المايك ما بيشتغل بالتطبيق المثبّت على آيفون. افتح الرابط بـ Safari، أو استخدم مايك لوحة المفاتيح.':'المتصفح حاجب المايك. اضغط أيقونة القفل جنب الرابط، واختار "المايك: السماح"، وجرّب مرة ثانية.'):
+        er==='network'?'التسجيل الصوتي بحتاج إنترنت. تأكد من الاتصال.':
+        'تعذّر التسجيل الصوتي ('+er+'). جرّب مرة ثانية، أو استخدم مايك لوحة المفاتيح.';
+      voiceHint(m,true);
+      if(er!=='no-speech'&&er!=='aborted'&&er!=='not-allowed')reportError('voice',er||'unknown');
+    };
+    rc.onend=function(){
+      if(ui.rec!==rc)return;
+      ui.listening=false;setVoiceUI(false);clearTimeout(ui.recTimer);ui.rec=null;
+      if(!got&&!failed)voiceHint(heard?'سمعت شي بس ما قدرت أفهمه. جرّب مرة ثانية بصوت أوضح.':'ما سمعت شي. تأكد إن المايك شغّال، وجرّب مرة ثانية.',true);
+    };
+    voiceHint('جاري تشغيل المايك… اسمح للمتصفح إذا سألك.');
+    try{rc.start()}catch(e){ui.rec=null;voiceHint('تعذّر تشغيل المايك. جرّب مرة ثانية.',true);return}
+    clearTimeout(ui.recTimer);ui.recTimer=setTimeout(stopVoice,15000);
+  }
+  run();
+}
+var ERR={n:0,seen:{}};
+function reportError(kind,msg,stack){
+  try{
+    if(!CLOUD||!sb||!cloud.uid)return;
+    var m=String(msg||'').replace(/\d{6,}/g,'#').slice(0,300);
+    var key=kind+'|'+m;if(!m||ERR.seen[key]||ERR.n>=5)return;
+    ERR.seen[key]=1;ERR.n++;
+    var meta={kind:kind,persona:S&&S.persona,country:S&&S.country,tab:ui.tab,sheet:ui.sheet,standalone:!!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches),ua:String((typeof navigator!=='undefined'&&navigator.userAgent)||'').slice(0,120),v:'2026-10'};
+    Promise.resolve(sb.rpc('log_client_error',{p_message:kind+': '+m,p_stack:String(stack||'').replace(/\d{6,}/g,'#').slice(0,800),p_meta:meta})).catch(function(){});
+  }catch(e){}
+}
 function pickDate(){
   var el=$('#f-date'),v=el&&el.value;
   if(!v||!/^\d{4}-\d{2}-\d{2}$/.test(v)||v>TODAY)return TODAY;
@@ -1229,11 +1301,32 @@ function scanFile(file){
     if(o.status===401){scanMsg('انتهت جلستك. سجّل دخولك من جديد.',true);return}
     if(o.status===503||o.status===502){scanMsg('الخدمة مشغولة لحظة. جرّب بعد دقيقة.',true);return}
     scanMsg('صار خطأ. جرّب مرة ثانية.',true);
+    if(o.status>=500)reportError('api','scan '+(j.error||'')+' '+o.status);
   }).catch(function(e){
     scanMsg(e&&e.code==='big'?'الصورة كبيرة كتير. جرّب صورة أصغر.':e&&e.code==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':e&&e.code==='read'?'ما قدرت أفتح الصورة.':'تعذّر الاتصال. جرّب مرة ثانية.',true);
   }).then(function(){ui.scanning=false});
 }
 function fb(){return '<span class="fbadge">مجاني الآن</span>'}
+function onbSteps(){
+  var p=S.persona,st=[];
+  st.push({t:'سجّل أول حركة',d:'اضغط + وسجّل أي مصروف أو دخل.',ok:S.tx.length>0,tab:null,btn:'سجّل حركة'});
+  st.push({t:'جرّب الكتابة السريعة',d:'اكتب حركاتك بجملة وحدة: «غداء 7 وبنزين 20 وقهوة 3» وبيفهمها لحاله. أو اضغط المايك واحكي.',ok:S.tx.length>=3,tab:null,btn:'جرّب'});
+  if(p==='student')st.push({t:'حدّد هدف توفير',d:'لابتوب، رحلة… وتابع تقدمك.',ok:S.goals.length>0,tab:'extra',btn:'أضف هدف'});
+  else if(p==='employee')st.push({t:'سجّل راتبك وكرّره شهرياً',d:'فعّل "كرّرها كل شهر" وبيتسجل لحاله كل شهر.',ok:(S.recurring||[]).length>0,tab:null,btn:'سجّل الراتب'});
+  else st.push({t:'سجّل دين زبون',d:'وجرّب زر "ذكّره بواتساب".',ok:S.debts.length>0,tab:'extra',btn:'سجّل دين'});
+  return st;
+}
+function onbCard(){
+  if(S.onbHidden||ui.month!==MONTH)return '';
+  var st=onbSteps(),done=st.filter(function(x){return x.ok}).length;
+  if(done>=3)return '';
+  var next=-1;st.forEach(function(x,i){if(next<0&&!x.ok)next=i});
+  return '<div class="onb"><div style="display:flex;justify-content:space-between;align-items:center"><h3>ابدأ بـ3 خطوات ('+done+' من 3)</h3><button class="x" data-act="onb-hide" aria-label="إخفاء">×</button></div>'+
+    st.map(function(x,i){
+      var btn=i===next?'<button class="btn small" style="margin-top:6px" '+(x.tab?'data-act="nav" data-tab="'+x.tab+'"':'data-act="open-add"')+'>'+x.btn+'</button>':'';
+      return '<div class="i'+(x.ok?' done':'')+'"><span class="ck'+(x.ok?' ok':'')+'">'+(x.ok?'✓':(i+1))+'</span><div class="t"><b>'+x.t+'</b><small>'+x.d+'</small>'+btn+'</div></div>';
+    }).join('')+'</div>';
+}
 function launchBanner(){
   if(S.hideBanner)return '';
   return '<div class="banner"><span class="fbadge">فترة الإطلاق</span><span>كل المميزات مجانية الآن. بعضها (تحليل الأشهر، كشوف الحساب، تصوير الفواتير، المدير المالي بلا حدود، واتساب) سيصير مدفوعاً لاحقاً.</span><button class="x" data-act="hide-banner" aria-label="إخفاء">×</button></div>';
@@ -1372,17 +1465,7 @@ document.addEventListener('click',function(e){
   if(a==='multi-del'){ui.multi.splice(+el.getAttribute('data-i'),1);showMulti();return}
   if(a==='save-multi'){if(ui.multi.length)addTx(ui.multi,'تمت إضافة '+ui.multi.length+' حركات');return}
   if(a==='quick'){var qo=ui.quick[+el.getAttribute('data-i')];if(qo)addTx([{type:'exp',cat:qo.cat,amt:qo.amt,note:qo.note}],'تمت إضافة '+qo.note+' ('+fmt(qo.amt)+' '+C().cur+')');return}
-  if(a==='mic'){
-    var SR=window.SpeechRecognition||window.webkitSpeechRecognition, hh=$('#hint');
-    if(!SR){hh.textContent='التسجيل الصوتي مش متاح بهذا المتصفح.';return}
-    try{
-      var rc=new SR();rc.lang=LANGS[(S&&S.country)||'JO'];rc.interimResults=false;rc.maxAlternatives=1;
-      rc.onresult=function(ev){var sp=ev.results[0][0].transcript;$('#smart').value=sp;doParse()};
-      rc.onerror=function(ev){hh.textContent=(ev.error==='not-allowed'||ev.error==='service-not-allowed')?'المايك مش متاح هنا. جرّب فتح الصفحة بمتصفح مباشرة.':'ما سمعت زين، جرّب مرة ثانية.'};
-      hh.textContent='جاري الاستماع… تكلم بلهجتك.';rc.start();
-    }catch(x){hh.textContent='التسجيل الصوتي مش متاح هنا.'}
-    return;
-  }
+  if(a==='mic'){startVoice();return}
   if(a==='edit-tx'){ui.editId=id;ui.multi=[];ui.sheet='add';render();fillEdit();return}
   if(a==='toggle-all'){ui.showAll=!ui.showAll;render();return}
   if(a==='stmt-open'){if(!CLOUD)return;ui.sheet='stmt';ui.stmt={phase:S.stmtConsent===true?'upload':'consent'};render();return}
@@ -1487,6 +1570,7 @@ document.addEventListener('click',function(e){
     if(CLOUD){pushCloud().then(function(){return sb.auth.signOut()}).catch(function(){toast('تعذّر تسجيل الخروج')});return}
     setSession(null);S=null;ui.returning=true;ui.pre={country:null,persona:null};ui.sheet=null;ui.chat=[];render();return;
   }
+  if(a==='onb-hide'){S.onbHidden=true;saveUser();render();return}
   if(a==='fb-open'){ui.fbKind='idea';ui.sheet='fb';render();return}
   if(a==='fb-close'){ui.sheet=null;render();return}
   if(a==='fb-kind'){ui.fbKind=el.getAttribute('data-k');document.querySelectorAll('#fb-kinds .qchip').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-k')===ui.fbKind)});return}
@@ -1616,6 +1700,7 @@ function askCloud(text,qkey){
     }else if(o.status===503&&j.error==='ai_busy'){m.t='المدير المالي مشغول لحظة. جرّب بعد دقيقة.'}
     else if(o.status===401){m.t='انتهت جلستك. سجّل دخولك من جديد.'}
     else{m.t='صار خطأ بالمدير المالي، جرّب بعد شوي.'}
+    if(o.status>=500&&!(j.error==='ai_not_configured'))reportError('api','ask '+(j.error||'')+' '+o.status);
   }).catch(function(e){
     var m=ui.chat[idx];if(!m)return;delete m.live;m.err=true;
     m.t=(e&&e.name==='AbortError')?'تم الإيقاف.':(e&&e.code==='auth')?'انتهت جلستك. سجّل دخولك من جديد.':'تعذّر الاتصال. تأكد من الإنترنت وجرّب مرة ثانية.';
@@ -1651,6 +1736,12 @@ function ask(text,qkey){
   .then(function(){ui.busy=false;ui.ctl=null;render();var m=$('#msgs');if(m&&m.lastElementChild&&m.lastElementChild.scrollIntoView)m.lastElementChild.scrollIntoView({block:'center'})});
 }
 
+try{
+  if(window.addEventListener){
+    window.addEventListener('error',function(e){if(!e||!e.message||/^Script error/i.test(e.message))return;reportError('js',e.message+(e.lineno?' @'+e.lineno+':'+(e.colno||0):''),e.error&&e.error.stack)});
+    window.addEventListener('unhandledrejection',function(e){var r=e&&e.reason;reportError('promise',(r&&r.message)||String(r||'unknown'),r&&r.stack)});
+  }
+}catch(e){}
 if(CLOUD){
   render();
   sb.auth.onAuthStateChange(function(event,session){
