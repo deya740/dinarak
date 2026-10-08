@@ -1014,19 +1014,25 @@ function viewCircles(){
     '<button class="btn block" data-act="circ-add">أضف الجمعية</button>';
   return '<main class="shell">'+topbar()+toolBack()+h+'</main>';
 }
+var LIST_SUG=['خبز','حليب','بيض','خضار','فواكه','لحمة','دجاج','رز','سكر','زيت','قهوة','منظفات'];
+function curList(){
+  if(!S.lists)S.lists=[];
+  if(!S.lists.length){S.lists.push({id:uid(),name:'مشتريات البيت',items:[]});saveUser()}
+  var c=S.lists.filter(function(l){return l.id===ui.listId})[0];
+  if(!c){c=S.lists[0];ui.listId=c.id}
+  return c;
+}
 function viewLists(){
-  var ls0=S.lists||[],cur=ui.listId&&ls0.filter(function(l){return l.id===ui.listId})[0],h='';
-  if(cur){
-    var left=cur.items.filter(function(i){return !i.done}),done=cur.items.filter(function(i){return i.done});
-    h='<button class="link2" style="margin:0 0 6px" data-act="list-back">→ كل القوائم</button><h2 class="sec disp">'+esc(cur.name)+'</h2>'+
-      '<div class="inl"><input class="f" id="li-in" maxlength="80" placeholder="أضف غرض (ممكن عدة أغراض بفاصلة)" aria-label="غرض جديد"><button class="btn" data-act="item-add">أضف</button></div>'+
-      '<div style="margin-top:8px">'+(left.concat(done).map(function(i){return '<div class="row-i li-r'+(i.done?' dn':'')+'"><input type="checkbox" data-act="item-toggle" data-id="'+i.id+'" '+(i.done?'checked':'')+' aria-label="تم" style="width:22px;height:22px;accent-color:var(--accent)"><div class="t"><b>'+esc(i.t)+'</b></div><button class="x" data-act="item-del" data-id="'+i.id+'" aria-label="حذف">×</button></div>'}).join('')||'<div class="empty">القائمة فاضية. اكتب أول غرض.</div>')+'</div>'+
-      '<div class="inl" style="margin-top:12px;flex-wrap:wrap">'+(left.length?'<button class="btn small" data-act="list-share">شارك بواتساب</button>':'')+(done.length?'<button class="btn ghost small" data-act="list-clear">امسح المشطوب ('+done.length+')</button>':'')+'<button class="btn ghost small" data-act="list-del" data-id="'+cur.id+'">احذف القائمة</button></div>';
-  }else{
-    h='<h2 class="sec disp">قوائم البيت</h2><p class="fine" style="margin-top:-4px">أغراض البيت والسوبرماركت. أضف، اشطب اللي اشتريته، وشارك القائمة مع العيلة.</p>'+
-      ls0.map(function(l){var n=l.items.filter(function(i){return !i.done}).length;return '<button class="row-i li-card" data-act="list-open" data-id="'+l.id+'"><span class="tl-c" style="margin:0">'+icon('cart')+'</span><div class="t"><b>'+esc(l.name)+'</b><small>'+(n?n+' باقي':l.items.length?'كلها مشطوبة ✓':'فاضية')+'</small></div><span class="muted">‹</span></button>'}).join('')+
-      '<h3 class="sub" style="margin:16px 0 6px">قائمة جديدة</h3><div class="inl"><input class="f" id="l-name" maxlength="50" placeholder="مثلاً: سوبرماركت، صيدلية" aria-label="اسم القائمة"><button class="btn" data-act="list-new">أضف</button></div>';
-  }
+  var cur=curList(),left=cur.items.filter(function(i){return !i.done}),done=cur.items.filter(function(i){return i.done});
+  var have=cur.items.map(function(i){return i.t});
+  var tabs=S.lists.map(function(l){return '<button class="qchip'+(l.id===cur.id?' on':'')+'" data-act="list-open" data-id="'+l.id+'">'+esc(l.name)+'</button>'}).join('')+'<button class="qchip" data-act="list-new">＋ قائمة ثانية</button>';
+  var sug=LIST_SUG.filter(function(x){return have.indexOf(x)<0}).map(function(x){return '<button class="qchip" data-act="item-quick" data-t="'+x+'">+ '+x+'</button>'}).join('');
+  var h='<h2 class="sec disp">شو بدك تشتري؟</h2>'+
+    '<div class="chips" style="margin-bottom:10px">'+tabs+'</div>'+
+    '<div class="inl"><input class="f" id="li-in" maxlength="80" placeholder="اكتب غرض واضغط أضف (مثلاً: خبز، حليب)" aria-label="غرض جديد"><button class="btn" data-act="item-add">أضف</button></div>'+
+    (sug?'<div class="chips" style="margin:10px 0 4px">'+sug+'</div>':'')+
+    '<div style="margin-top:8px">'+(left.concat(done).map(function(i){return '<div class="row-i li-r'+(i.done?' dn':'')+'"><input type="checkbox" data-act="item-toggle" data-id="'+i.id+'" '+(i.done?'checked':'')+' aria-label="تم" style="width:22px;height:22px;accent-color:var(--accent)"><div class="t"><b>'+esc(i.t)+'</b></div><button class="x" data-act="item-del" data-id="'+i.id+'" aria-label="حذف">×</button></div>'}).join('')||'<p class="fine" style="text-align:center;padding:12px 0">قائمتك فاضية. اضغط على غرض من فوق أو اكتبه.</p>')+'</div>'+
+    '<div class="inl" style="margin-top:12px;flex-wrap:wrap">'+(left.length?'<button class="btn small" data-act="list-share">شارك بواتساب</button>':'')+(done.length?'<button class="btn ghost small" data-act="list-clear">امسح المشطوب ('+done.length+')</button>':'')+(S.lists.length>1?'<button class="btn ghost small" data-act="list-del" data-id="'+cur.id+'">احذف هالقائمة</button>':'')+'</div>';
   return '<main class="shell">'+topbar()+toolBack()+h+'</main>';
 }
 function toolBack(){return '<button class="link2" style="margin:0 0 6px" data-act="tool-back">→ الأدوات</button>'}
@@ -2632,9 +2638,9 @@ document.addEventListener('click',function(e){
     var cr=(S.circles||[]).filter(function(x){return x.id===id})[0];if(!cr||cr.recv)return;
     cr.recv=true;S.tx.push({id:uid(),type:'inc',cat:'otherinc',amt:cr.amt*cr.n,note:'استلام جمعية: '+cr.name,date:TODAY});saveUser();render();toast('تم تسجيل الاستلام');return;
   }
-  if(a==='list-new'){var ln=($('#l-name').value||'').trim();if(!ln){toast('اكتب اسم القائمة');return}if((S.lists||[]).length>=8){toast('الحد الأقصى 8 قوائم');return}var nl={id:uid(),name:ln.slice(0,50),items:[]};S.lists=S.lists||[];S.lists.push(nl);ui.listId=nl.id;saveUser();render();var f0=$('#li-in');if(f0)f0.focus();return}
+  if(a==='list-new'){var ln=window.prompt('اسم القائمة (مثلاً: صيدلية، سوبرماركت)','');if(ln===null)return;ln=ln.trim();if(!ln)return;if((S.lists||[]).length>=8){toast('الحد الأقصى 8 قوائم');return}var nl={id:uid(),name:ln.slice(0,50),items:[]};S.lists.push(nl);ui.listId=nl.id;saveUser();render();return}
+  if(a==='item-quick'){var ql=curList(),qt=el.getAttribute('data-t');if(qt&&ql.items.length<200){ql.items.push({id:uid(),t:qt,done:false});saveUser();render()}return}
   if(a==='list-open'){ui.listId=id;render();window.scrollTo(0,0);return}
-  if(a==='list-back'){ui.listId=null;render();return}
   if(a==='item-add'){
     var cl=(S.lists||[]).filter(function(x){return x.id===ui.listId})[0],inp=$('#li-in');if(!cl||!inp)return;
     var parts=inp.value.split(/[،,\n]/).map(function(z){return z.trim()}).filter(Boolean);if(!parts.length)return;
@@ -2645,7 +2651,7 @@ document.addEventListener('click',function(e){
   if(a==='item-del'){var dl=(S.lists||[]).filter(function(x){return x.id===ui.listId})[0];if(!dl)return;dl.items=dl.items.filter(function(z){return z.id!==id});saveUser();render();return}
   if(a==='list-clear'){var cc=(S.lists||[]).filter(function(x){return x.id===ui.listId})[0];if(!cc)return;var bk0=cc.items.slice();cc.items=cc.items.filter(function(z){return !z.done});saveUser();render();toast('تم مسح المشطوب',function(){cc.items=bk0;saveUser();render()});return}
   if(a==='list-share'){var sl=(S.lists||[]).filter(function(x){return x.id===ui.listId})[0];if(!sl)return;var tx2=sl.name+':\n'+sl.items.filter(function(z){return !z.done}).map(function(z){return '• '+z.t}).join('\n');window.open('https://wa.me/?text='+encodeURIComponent(tx2),'_blank','noopener');return}
-  if(a==='list-del'){var dd=(S.lists||[]).filter(function(x){return x.id===id})[0];if(!dd)return;S.lists=S.lists.filter(function(x){return x.id!==id});ui.listId=null;saveUser();render();toast('تم حذف القائمة',function(){S.lists.push(dd);saveUser();render()});return}
+  if(a==='list-del'){var dd=(S.lists||[]).filter(function(x){return x.id===id})[0];if(!dd||S.lists.length<2)return;S.lists=S.lists.filter(function(x){return x.id!==id});ui.listId=null;saveUser();render();toast('تم حذف القائمة',function(){S.lists.push(dd);saveUser();render()});return}
   if(a==='install-app'){var di=deferredInstall;if(di){di.prompt();Promise.resolve(di.userChoice).then(function(){deferredInstall=null;render()}).catch(function(){})}return}
   if(a==='install-hide'){try{localStorage.setItem('dn_inst_hide','1')}catch(e){}render();return}
   if(a==='pin-key'){
