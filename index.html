@@ -337,6 +337,22 @@ details.more.add[open] summary{margin-bottom:8px}
 .cscroll::-webkit-scrollbar{display:none}
 .cscroll .cchip{flex:none;margin:0}
 .tx-sum{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);margin:2px 0 4px}
+.bud{padding:13px 0;border-bottom:1px solid var(--line)}
+.bud-t{display:flex;align-items:center;gap:8px}
+.bud-t b{flex:1;font-weight:600;font-size:15.5px}
+.bud-s{color:var(--muted);font-size:13px}
+.bud-bar{height:8px;border-radius:99px;background:var(--line);margin:8px 0;overflow:hidden}
+.bud-bar i{display:block;height:100%;border-radius:99px}
+.bud-bar i.ok{background:var(--good)}.bud-bar i.warn{background:var(--gold)}.bud-bar i.bad{background:var(--bad)}
+.bud-in{display:flex;align-items:center;gap:10px}
+.bud-in .f{max-width:160px;padding:8px 10px;font-size:15px}
+.bud-in small{color:var(--muted);font-size:12.5px}
+.vault .bud-bar{background:rgba(255,255,255,.28);margin:4px 0}.vault .bud-bar i{background:#fff}
+.bcard{display:block;width:100%;text-align:start;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;margin-bottom:16px}
+.bcard .bh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.bchip{display:inline-flex;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;margin:2px 0 0 6px}
+.bchip.warn{background:color-mix(in srgb,var(--gold) 24%,transparent);color:var(--ink)}
+.bchip.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
 .flag.warn{background:color-mix(in srgb,var(--bad) 20%,var(--surface))}
 .chk{border-radius:12px;padding:8px 12px;font-size:14px;margin:8px 0;border:1.5px solid var(--line)}
 .chk.ok{border-color:var(--good);color:var(--good)}
@@ -555,6 +571,7 @@ function cleanLists(u){
   u.goals=(Array.isArray(u.goals)?u.goals:[]).filter(function(g){return g&&isNum(g.target)&&g.target>0&&isNum(g.saved)}).map(function(g){return {id:String(g.id||uid()),name:String(g.name||'').slice(0,80),target:g.target,saved:g.saved}});
   u.bills=(Array.isArray(u.bills)?u.bills:[]).filter(function(b){return b&&isNum(b.amt)&&isNum(b.day)}).map(function(b){return {id:String(b.id||uid()),name:String(b.name||'').slice(0,80),amt:b.amt,day:b.day,paid:!!b.paid}});
   u.debts=(Array.isArray(u.debts)?u.debts:[]).filter(function(d){return d&&isNum(d.owed)}).map(function(d){var o={id:String(d.id||uid()),name:String(d.name||'').slice(0,80),owed:d.owed};if(d.phone)o.phone=cleanPhone(d.phone);return o});
+  var bdg={};if(u.budgets&&typeof u.budgets==='object'){Object.keys(u.budgets).forEach(function(k){var v=u.budgets[k];if(CATS[k]&&isNum(v)&&v>0&&v<=1e9)bdg[k]=v})}u.budgets=bdg;
   u.metals=(Array.isArray(u.metals)?u.metals:[]).slice(0,100).filter(function(m){return m&&(m.metal==='gold'||m.metal==='silver')&&isNum(m.grams)&&m.grams>0&&m.grams<=1000000&&isNum(m.cost)&&m.cost>=0}).map(function(m){
     var okP=m.metal==='gold'?(isNum(m.purity)&&m.purity>=8&&m.purity<=24):(isNum(m.purity)&&m.purity>=500&&m.purity<=1000);
     return {id:String(m.id||uid()),metal:m.metal,purity:okP?Math.round(m.purity):(m.metal==='gold'?21:925),grams:m.grams,cost:m.cost,cur:MCODES.indexOf(m.cur)>-1?m.cur:(CCODE[u.country]||'JOD'),date:/^\d{4}-\d{2}-\d{2}$/.test(m.date||'')?m.date:TODAY,note:String(m.note||'').slice(0,60)}});
@@ -571,7 +588,7 @@ function cleanData(u){
     ['student','employee','merchant'].forEach(function(k){
       var b=u.books[k];
       if(b&&typeof b==='object'&&k!==u.persona){
-        var c=cleanLists({tx:b.tx,goals:b.goals,bills:b.bills,debts:b.debts,recurring:b.recurring});
+        var c=cleanLists({tx:b.tx,goals:b.goals,bills:b.bills,debts:b.debts,recurring:b.recurring,budgets:b.budgets});
         c.billsMonth=/^\d{4}-\d{2}$/.test(String(b.billsMonth||''))?b.billsMonth:MONTH;
         bk[k]=c;
       }
@@ -694,6 +711,7 @@ var IC={
   advisor:'<path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.5A8 8 0 1 1 21 12z"/>',
   account:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
+  budget:'<path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 7l12-3v3M17 14h.01"/>',
   list:'<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
   grid:'<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>',
@@ -862,7 +880,7 @@ function viewHome(){
     '<span class="msw"><button data-act="month" data-m="'+(older||'')+'" '+(older?'':'disabled')+' aria-label="الشهر السابق">›</button><b aria-live="polite">'+monthName(ui.month)+'</b><button data-act="month" data-m="'+(newer||'')+'" '+(newer?'':'disabled')+' aria-label="الشهر التالي">‹</button></span></div>'+
     '<div class="big"><bdi dir="ltr" class="amt" data-count="'+s.rem+'">'+fmt(s.rem)+'</bdi><span class="cur">'+C().cur+'</span></div>'+
     '<div class="sub"><div><small>'+(p==='merchant'?'مبيعات':'دخل')+'</small><b>'+amt(s.inc)+'</b></div><div><small>مصاريف</small><b>'+amt(s.exp)+'</b></div></div></div></div>'+
-    quickActions()+onbCard()+'<div class="tiles">'+homeTiles(s,p,isCur)+'</div>'+metalsCard()+
+    quickActions()+onbCard()+'<div class="tiles">'+homeTiles(s,p,isCur)+'</div>'+budgetCard()+metalsCard()+
     '<section class="blk card"><div class="sec-h"><h2 class="sec disp">'+t('whereMoney')+'</h2><button class="link2" data-act="open-report">تقرير '+monthName(ui.month)+'</button></div>'+donutHTML(s)+'</section>'+
     '<section class="blk"><div class="sec-h"><h2 class="sec disp">آخر الحركات</h2><button class="link2" data-act="tx-open">بحث وعرض الكل</button></div>'+recent+moreBtn+'</section></main>';
 }
@@ -907,6 +925,7 @@ function viewTools(){
   if(p==='student')g1.push(toolCard('tool','student','أهدافي',S.goals.length+' هدف',' data-t="persona"'));
   else if(p==='employee')g1.push(toolCard('tool','employee','التزاماتي',S.bills.filter(function(b){return !b.paid}).length+' لسا ما اندفعت',' data-t="persona"'));
   else g1.push(toolCard('tool','merchant','دفتر الديون',S.debts.length+' زبون',' data-t="persona"'));
+  (function(){var br=budgetRows(MONTH),tb=br.reduce(function(a,r){return a+r.b},0),ts=br.reduce(function(a,r){return a+r.sp},0);g1.push(toolCard('tool','budget','الميزانية',br.length?br.length+' تصنيف · '+Math.round(ts/tb*100)+'% مستخدم':'حدّد سقف لكل تصنيف',' data-t="budget"'))})();
   g1.push(toolCard('tool','repeat','حركات متكررة',(S.recurring||[]).length+' حركة',' data-t="recurring"'));
   g1.push(toolCard('tx-open','list','كل الحركات',S.tx.filter(function(x){return x.date.indexOf(MONTH)===0}).length+' حركة هالشهر',''));
   g1.push(toolCard('open-report','chart','تقرير الشهر',monthName(MONTH),''));
@@ -916,6 +935,7 @@ function viewTools(){
   return '<main class="shell">'+topbar()+'<h2 class="sec disp">الأدوات</h2><h3 class="sub">أدواتك</h3><div class="tools">'+g1.join('')+'</div><h3 class="sub">أدوات ذكية</h3><div class="tools">'+g2.join('')+'</div></main>';
 }
 function viewExtra(){
+  if(ui.tool==='budget')return '<main class="shell">'+topbar()+toolBack()+viewBudgets()+'</main>';
   if(ui.tool==='persona')return viewPersonaTool();
   if(ui.tool==='recurring')return '<main class="shell">'+topbar()+toolBack()+recSection()+'</main>';
   return viewTools();
@@ -1201,6 +1221,60 @@ function fillEdit(){
   else $('#f-cat').value=PCATS[S.persona].indexOf(x.cat)>-1?x.cat:'other';
   syncChips();
 }
+/* ---------- الميزانية ---------- */
+function spentMap(){var by=stats(MONTH).by,o={};Object.keys(by).forEach(function(k){o[k]=by[k]});return o}
+function budgetRows(ym){
+  var by=stats(ym).by,b=S.budgets||{};
+  return PCATS[S.persona].filter(function(k){return b[k]>0}).map(function(k){var sp=by[k]||0,pct=sp/b[k]*100;return {k:k,b:b[k],sp:sp,pct:pct,left:b[k]-sp,st:pct>=100?'bad':pct>=80?'warn':'ok'}}).sort(function(a,c){return c.pct-a.pct});
+}
+function budgetNotes(before,after){
+  var m=[],b=S.budgets||{};
+  Object.keys(b).forEach(function(k){
+    var a0=before[k]||0,a1=after[k]||0;if(!(a1>a0)||!CATS[k])return;
+    var p0=a0/b[k]*100,p1=a1/b[k]*100;
+    if(p1>=100&&p0<100)m.push('تجاوزت ميزانية '+CATS[k].n+' بـ '+fmt(a1-b[k])+' '+C().cur);
+    else if(p1>=80&&p0<80)m.push('وصلت '+Math.round(p1)+'% من ميزانية '+CATS[k].n);
+  });
+  return m.slice(0,2).join('، ');
+}
+function suggestBudgets(){
+  var months=monthsList().filter(function(m){return m<MONTH}).slice(0,3);
+  if(!months.length)months=[MONTH];
+  var sum={},cnt=0;
+  months.forEach(function(m){var by=stats(m).by,any=false;Object.keys(by).forEach(function(k){sum[k]=(sum[k]||0)+by[k];any=true});if(any)cnt++});
+  if(!cnt)return {added:0,src:0};
+  var prev=JSON.stringify(S.budgets||{}),added=0;if(!S.budgets)S.budgets={};
+  Object.keys(sum).forEach(function(k){
+    if(PCATS[S.persona].indexOf(k)<0||S.budgets[k])return;
+    var avg=sum[k]/cnt;if(!(avg>0))return;
+    var step=avg<50?5:avg<500?10:avg<5000?50:100;
+    S.budgets[k]=Math.ceil(avg/step)*step;added++;
+  });
+  return {added:added,src:cnt,prev:prev};
+}
+function budgetCard(){
+  if(ui.month!==MONTH)return '';
+  var rows=budgetRows(MONTH);if(!rows.length)return '';
+  var tb=rows.reduce(function(a,r){return a+r.b},0),ts=rows.reduce(function(a,r){return a+r.sp},0),pc=ts/tb*100,st=pc>=100?'bad':pc>=80?'warn':'ok';
+  var al=rows.filter(function(r){return r.st!=='ok'}).slice(0,3);
+  return '<button class="bcard" data-act="tool" data-t="budget"><div class="bh"><b>الميزانية</b><small class="muted">'+Math.round(pc)+'% · '+(tb>=ts?'باقي '+fmt(tb-ts):'تجاوزت بـ '+fmt(ts-tb))+' '+C().cur+'</small></div><div class="bud-bar"><i class="'+st+'" style="width:'+Math.min(100,pc)+'%"></i></div>'+
+    (al.length?'<div>'+al.map(function(r){return '<span class="bchip '+r.st+'">'+CATS[r.k].n+' '+Math.round(r.pct)+'%</span>'}).join('')+'</div>':'<small class="muted">كل تصنيفاتك ضمن الميزانية</small>')+'</button>';
+}
+function viewBudgets(){
+  var rows=budgetRows(MONTH),b=S.budgets||{},by=stats(MONTH).by,h='';
+  var tb=rows.reduce(function(a,r){return a+r.b},0),ts=rows.reduce(function(a,r){return a+r.sp},0),pc=tb?ts/tb*100:0;
+  h+='<h2 class="sec disp">الميزانية</h2><p class="fine" style="margin-top:-4px">حدّد سقف شهري لكل تصنيف، وبنبلّغك لما تقرّب منه. بتتجدّد كل شهر لحالها.</p>';
+  if(rows.length)h+='<div class="vault"><small class="v-l">ميزانية '+monthName(MONTH)+'</small><small class="v-p">'+rows.length+' تصنيف</small><div class="v-v">'+(tb>=ts?moneyCode(tb-ts,CCODE[S.country]||'JOD'):'−'+moneyCode(ts-tb,CCODE[S.country]||'JOD'))+'</div><div class="v-pl"><div class="bud-bar"><i style="width:'+Math.min(100,pc)+'%"></i></div>'+(tb>=ts?'باقي من ':'تجاوزت ')+fmt(tb)+' · صرفت '+Math.round(pc)+'%</div></div>';
+  h+='<button class="btn ghost block" data-act="bud-suggest">اقترح ميزانية من متوسط آخر أشهرك</button>';
+  var order=PCATS[S.persona].slice().sort(function(a,c){var ba=b[a]>0,bc=b[c]>0;if(ba!==bc)return ba?-1:1;if(ba)return (by[c]||0)/b[c]-(by[a]||0)/b[a];return (by[c]||0)-(by[a]||0)});
+  h+=order.map(function(k){
+    var sp=by[k]||0,bv=b[k]||0,pct=bv?sp/bv*100:0,st=pct>=100?'bad':pct>=80?'warn':'ok',left=bv-sp;
+    return '<div class="bud"><div class="bud-t"><span class="dot" style="background:'+CATS[k].c+'"></span><b>'+CATS[k].n+'</b><span class="bud-s">'+(bv?fmt(sp)+' / '+fmt(bv):'صرفت '+fmt(sp))+'</span></div>'+
+      (bv?'<div class="bud-bar"><i class="'+st+'" style="width:'+Math.min(100,pct)+'%"></i></div>':'')+
+      '<div class="bud-in"><input class="f" inputmode="decimal" data-act="bud-set" data-k="'+k+'" value="'+(bv||'')+'" placeholder="الميزانية الشهرية" aria-label="ميزانية '+CATS[k].n+'">'+(bv?'<small class="'+(st==='bad'?'neg':'')+'">'+(left>=0?'باقي '+fmt(left):'تجاوزت بـ '+fmt(-left))+' '+C().cur+' · '+Math.round(pct)+'%</small>':'')+'</div></div>';
+  }).join('');
+  return h;
+}
 function syncBillFromTx(x,b0){
   if(!x.billId)return '';
   var bl=S.bills.filter(function(b){return b.id===x.billId})[0];
@@ -1219,9 +1293,9 @@ function syncBillFromTx(x,b0){
 function payBill(id,paid){
   var b=S.bills.filter(function(x){return x.id===id})[0];if(!b)return;
   if(paid){
-    var tx={id:uid(),type:'exp',cat:'bills',amt:b.amt,note:b.name,date:TODAY,billId:b.id};
-    b.paid=true;S.tx.push(tx);saveUser();render();
-    toast('تم خصم '+fmt(b.amt)+' '+C().cur+' من رصيدك',function(){b.paid=false;S.tx=S.tx.filter(function(x){return x.id!==tx.id});saveUser();render()});
+    var tx={id:uid(),type:'exp',cat:'bills',amt:b.amt,note:b.name,date:TODAY,billId:b.id},bsp=spentMap();
+    b.paid=true;S.tx.push(tx);saveUser();render();var bnp=budgetNotes(bsp,spentMap());
+    toast('تم خصم '+fmt(b.amt)+' '+C().cur+' من رصيدك'+(bnp?'. '+bnp:''),function(){b.paid=false;S.tx=S.tx.filter(function(x){return x.id!==tx.id});saveUser();render()});
   }else{
     var gone=S.tx.filter(function(x){return x.billId===id&&x.date.indexOf(MONTH)===0});
     S.tx=S.tx.filter(function(x){return !(x.billId===id&&x.date.indexOf(MONTH)===0)});
@@ -1230,11 +1304,13 @@ function payBill(id,paid){
   }
 }
 function addTx(list,msg){
+  var bBefore=spentMap();
   var made=list.map(function(r){var o={id:uid(),type:r.type,cat:r.cat,amt:r.amt,note:r.note||'',date:(r.date&&/^\d{4}-\d{2}-\d{2}$/.test(r.date))?r.date:TODAY};if(r.ext)o.ext=String(r.ext).slice(0,140);return o});
   made.forEach(function(x){S.tx.push(x)});
   var ms=made.map(function(x){return x.date.slice(0,7)});
   ui.sheet=null;ui.editId=null;ui.multi=[];ui.tab='home';ui.month=ms.every(function(m){return m===ms[0]})?ms[0]:MONTH;saveUser();render();
-  toast(msg,function(){var ids=made.map(function(x){return x.id});S.tx=S.tx.filter(function(x){return ids.indexOf(x.id)<0});saveUser();render()});
+  var bNote=budgetNotes(bBefore,spentMap());
+  toast(msg+(bNote?'. '+bNote:''),function(){var ids=made.map(function(x){return x.id});S.tx=S.tx.filter(function(x){return ids.indexOf(x.id)<0});saveUser();render()});
 }
 function readB64(file){
   return new Promise(function(resolve,reject){
@@ -1453,13 +1529,13 @@ function sendFeedback(){
     var mm=$('#fb-msg');if(mm)mm.textContent=d&&d.reason==='rate'?'أرسلت ملاحظات كثيرة. جرّب بعد شوي.':d&&d.reason==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':'تعذّر الإرسال، جرّب مرة ثانية.';
   }).catch(function(){var mm=$('#fb-msg');if(mm)mm.textContent='تعذّر الإرسال، جرّب مرة ثانية.'}).then(function(){ui.fbBusy=false});
 }
-function emptyBook(){return {tx:[],goals:[],bills:[],debts:[],recurring:[],billsMonth:MONTH}}
+function emptyBook(){return {tx:[],goals:[],bills:[],debts:[],recurring:[],budgets:{},billsMonth:MONTH}}
 function switchBook(np){
   if(!PCATS[np]||S.persona===np)return false;
   if(!S.books)S.books={};
-  if(S.persona){S.books[S.persona]={tx:S.tx,goals:S.goals,bills:S.bills,debts:S.debts,recurring:S.recurring||[],billsMonth:S.billsMonth||MONTH}}
+  if(S.persona){S.books[S.persona]={tx:S.tx,goals:S.goals,bills:S.bills,debts:S.debts,recurring:S.recurring||[],budgets:S.budgets||{},billsMonth:S.billsMonth||MONTH}}
   var nb=S.books[np]||emptyBook();delete S.books[np];
-  S.persona=np;S.tx=nb.tx;S.goals=nb.goals;S.bills=nb.bills;S.debts=nb.debts;S.recurring=nb.recurring||[];S.billsMonth=nb.billsMonth||MONTH;
+  S.persona=np;S.tx=nb.tx;S.goals=nb.goals;S.bills=nb.bills;S.debts=nb.debts;S.recurring=nb.recurring||[];S.budgets=nb.budgets||{};S.billsMonth=nb.billsMonth||MONTH;
   ui.tab='home';ui.chat=[];ui.month=MONTH;ui.stmt=null;ui.sheet=null;
   saveUser();return true;
 }
@@ -2174,6 +2250,12 @@ document.addEventListener('click',function(e){
   if(a==='tx-kind'){ui.txKind=el.getAttribute('data-k')||'all';ui.txCat=null;ui.txLimit=80;render();return}
   if(a==='tx-cat'){var k0=el.getAttribute('data-k');ui.txCat=ui.txCat===k0?null:k0;ui.txLimit=80;render();return}
   if(a==='tx-scope'){ui.txAll=!ui.txAll;ui.txCat=null;ui.txLimit=80;render();return}
+  if(a==='bud-suggest'){
+    var sg=suggestBudgets();
+    if(!sg.added){toast(sg.src?'كل تصنيفاتك الها ميزانية.':'ما في مصاريف كافية لاقتراح ميزانية. سجّل مصاريفك أول، أو حدّدها بإيدك.');return}
+    saveUser();render();
+    toast('اقترحنا ميزانية لـ '+sg.added+' تصنيف من متوسط '+(sg.src>1?'آخر '+sg.src+' أشهر':'هالشهر')+'. عدّلها كما بدك.',function(){S.budgets=JSON.parse(sg.prev);saveUser();render()});return;
+  }
   if(a==='tx-more'){ui.txLimit=(ui.txLimit||80)+80;txRefresh();return}
   if(a==='tx-clear'){ui.txq='';ui.txKind='all';ui.txCat=null;ui.txLimit=80;render();return}
   if(a==='stmt-open'){if(!CLOUD)return;ui.sheet='stmt';ui.stmt={phase:S.stmtConsent===true?'upload':'consent'};render();return}
@@ -2213,9 +2295,9 @@ document.addEventListener('click',function(e){
     var tp=ui.addType, ct=tp==='inc'?$('#f-inc').value:$('#f-cat').value, nt=$('#f-note').value.trim(), dv=pickDate();
     if(ui.editId){
       var ex0=S.tx.filter(function(z){return z.id===ui.editId})[0];
-      var bmsg='';
+      var bmsg='',bSp=spentMap();
       if(ex0){var b0={type:ex0.type,amt:ex0.amt,date:ex0.date};ex0.type=tp;ex0.cat=ct;ex0.amt=v;ex0.note=nt;ex0.date=dv;bmsg=syncBillFromTx(ex0,b0)}
-      ui.editId=null;ui.sheet=ui.txBack?'tx':null;ui.txBack=false;saveUser();render();toast(bmsg||'تم التعديل');return;
+      ui.editId=null;ui.sheet=ui.txBack?'tx':null;ui.txBack=false;saveUser();render();var bn2=budgetNotes(bSp,spentMap());toast((bmsg||'تم التعديل')+(bn2?'. '+bn2:''));return;
     }
     var repOn=!!($('#f-rep')&&$('#f-rep').checked), rday=recDay(parseInt(dv.slice(8,10),10));
     if(repOn){if(!S.recurring)S.recurring=[];S.recurring.push({id:uid(),type:tp,cat:ct,amt:v,note:nt,day:rday,active:true,next:ymAdd(dv.slice(0,7),1)})}
@@ -2412,6 +2494,11 @@ document.addEventListener('click',function(e){
 document.addEventListener('change',function(e){
   var el=e.target;
   if(el&&(el.id==='split-in'||el.id==='split-cam')){var spfile=el.files&&el.files[0];if(spfile)splitFile(spfile);try{el.value=''}catch(x){}return}
+  if(el&&el.getAttribute&&el.getAttribute('data-act')==='bud-set'){
+    var bk=el.getAttribute('data-k'),bvv=toNum(el.value);
+    if(CATS[bk]){if(!S.budgets)S.budgets={};if(isNaN(bvv)||bvv<=0)delete S.budgets[bk];else S.budgets[bk]=Math.min(1e9,bvv);saveUser();render()}
+    return;
+  }
   if(splitField(el))return;
   if(metalField(el))return;
   if(el&&el.id==='stmt-in'){var sf=el.files&&el.files[0];if(sf)stmtFile(sf);try{el.value=''}catch(x){}return}
