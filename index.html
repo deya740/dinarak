@@ -609,6 +609,7 @@ function cleanLists(u){
   u.metals=(Array.isArray(u.metals)?u.metals:[]).slice(0,100).filter(function(m){return m&&(m.metal==='gold'||m.metal==='silver')&&isNum(m.grams)&&m.grams>0&&m.grams<=1000000&&isNum(m.cost)&&m.cost>=0}).map(function(m){
     var okP=m.metal==='gold'?(isNum(m.purity)&&m.purity>=8&&m.purity<=24):(isNum(m.purity)&&m.purity>=500&&m.purity<=1000);
     return {id:String(m.id||uid()),metal:m.metal,purity:okP?Math.round(m.purity):(m.metal==='gold'?21:925),grams:m.grams,cost:m.cost,cur:MCODES.indexOf(m.cur)>-1?m.cur:(CCODE[u.country]||'JOD'),date:/^\d{4}-\d{2}-\d{2}$/.test(m.date||'')?m.date:TODAY,note:String(m.note||'').slice(0,60)}});
+  u.alerts=(Array.isArray(u.alerts)?u.alerts:[]).filter(function(a){return a&&(a.metal==='gold'||a.metal==='silver')&&(a.dir==='above'||a.dir==='below')&&isNum(a.price)&&a.price>0&&isNum(a.purity)}).slice(0,10).map(function(a){return {id:String(a.id||uid()),metal:a.metal,purity:Math.round(a.purity),dir:a.dir,price:a.price,fired:!!a.fired,at:isNum(a.at)?a.at:0}});
   u.metalAdj=isNum(u.metalAdj)?Math.max(-30,Math.min(30,u.metalAdj)):0;
   u.recurring=(Array.isArray(u.recurring)?u.recurring:[]).filter(function(r){return r&&(r.type==='inc'||r.type==='exp')&&isNum(r.amt)&&r.amt>0&&isNum(r.day)}).slice(0,50).map(function(r){return {id:String(r.id||uid()),type:r.type,cat:CATS[r.cat]?r.cat:(r.type==='inc'?'otherinc':'other'),amt:r.amt,note:String(r.note||'').slice(0,100),day:recDay(r.day),active:r.active!==false,next:/^\d{4}-\d{2}$/.test(r.next||'')?r.next:MONTH}});
   return u;
@@ -916,7 +917,7 @@ function viewHome(){
     '<span class="msw"><button data-act="month" data-m="'+(older||'')+'" '+(older?'':'disabled')+' aria-label="الشهر السابق">›</button><b aria-live="polite">'+monthName(ui.month)+'</b><button data-act="month" data-m="'+(newer||'')+'" '+(newer?'':'disabled')+' aria-label="الشهر التالي">‹</button></span></div>'+
     '<div class="big"><bdi dir="ltr" class="amt" data-count="'+s.rem+'">'+fmt(s.rem)+'</bdi><span class="cur">'+C().cur+'</span></div>'+
     '<div class="sub"><div><small>'+(p==='merchant'?'مبيعات':'دخل')+'</small><b>'+amt(s.inc)+'</b></div><div><small>مصاريف</small><b>'+amt(s.exp)+'</b></div></div></div></div>'+
-    quickActions()+onbCard()+installCard()+'<div class="tiles">'+homeTiles(s,p,isCur)+'</div>'+budgetCard()+metalsCard()+
+    quickActions()+alertBanner()+onbCard()+installCard()+'<div class="tiles">'+homeTiles(s,p,isCur)+'</div>'+budgetCard()+metalsCard()+
     '<section class="blk card"><div class="sec-h"><h2 class="sec disp">'+t('whereMoney')+'</h2><button class="link2" data-act="open-report">تقرير '+monthName(ui.month)+'</button></div>'+donutHTML(s)+'</section>'+
     '<section class="blk"><div class="sec-h"><h2 class="sec disp">آخر الحركات</h2><button class="link2" data-act="tx-open">بحث وعرض الكل</button></div>'+recent+moreBtn+'</section></main>';
 }
@@ -1199,7 +1200,7 @@ function render(){
   var v=ui.tab==='home'?viewHome():ui.tab==='extra'?viewExtra():ui.tab==='advisor'?viewAdvisor():viewAccount();
   app.innerHTML=E(v)+navHTML()+(ui.sheet==='add'?sheetAdd():ui.sheet==='report'?sheetReport():ui.sheet==='stmt'?sheetStmt():ui.sheet==='fb'?sheetFb():ui.sheet==='split'?sheetSplit():ui.sheet==='metals'?sheetMetals():ui.sheet==='scan'?sheetScan():ui.sheet==='tx'?sheetTx():'');
   if(anim)countUp();
-  if(ui.screen==='app'&&S.metals&&S.metals.length&&!ui.prices&&!ui.pricesBusy&&!ui.pricesTried){ui.pricesTried=true;ensurePrices()}
+  if(ui.screen==='app'&&((S.metals&&S.metals.length)||(S.alerts&&S.alerts.length))&&!ui.prices&&!ui.pricesBusy&&!ui.pricesTried){ui.pricesTried=true;ensurePrices()}
   if(ui.sheet==='stmt'&&ui.stmt&&ui.stmt.phase==='review')stmtSetCount();
   if(ui.sheet==='add'){var sm=$('#smart');if(sm)sm.focus()}
 }
@@ -1930,7 +1931,32 @@ function ensurePrices(force){
   }).catch(function(){
     ui.pricesErr=true;
     if(!ui.prices){var raw=ls(function(){return localStorage.getItem('dinarak:v3:prices')});if(raw){try{var pp=JSON.parse(raw);if(pp&&pp.gold_usd_gram>0){pp.stale=true;pp.offline=true;ui.prices=pp;ui.pricesTs=Date.now()-290000}}catch(e){}}}
-  }).then(function(){ui.pricesBusy=false;if(ui.screen==='app'&&(ui.sheet==='metals'||ui.tab==='home'))render()});
+  }).then(function(){ui.pricesBusy=false;checkAlerts();if(ui.screen==='app'&&(ui.sheet==='metals'||ui.tab==='home'))render()});
+}
+function alertCode(){return CCODE[S.country]||'JOD'}
+function alertName(a){return (a.metal==='gold'?'الذهب عيار ':'الفضة ')+a.purity}
+function checkAlerts(){
+  if(!S||!(S.alerts||[]).length||!ui.prices||ui.prices.stale)return;
+  var code=alertCode(),hit=[];
+  S.alerts.forEach(function(a){
+    if(a.fired)return;var v=metalPerGram(ui.prices,a.metal,a.purity,code,S.metalAdj||0);if(v===null)return;
+    if((a.dir==='above'&&v>=a.price)||(a.dir==='below'&&v<=a.price)){a.fired=true;a.at=Date.now();a.now=v;hit.push(a)}
+  });
+  if(hit.length){saveUser();toast('تنبيه سعر: '+alertName(hit[0])+(hit.length>1?' و'+(hit.length-1)+' غيره':''))}
+}
+function alertBanner(){
+  var f=(S.alerts||[]).filter(function(a){return a.fired});if(!f.length)return '';
+  var code=alertCode();
+  return f.map(function(a){var v=metalPerGram(ui.prices,a.metal,a.purity,code,S.metalAdj||0);
+    return '<div class="banner" style="margin-bottom:8px"><span class="fbadge">تنبيه</span><span style="flex:1">'+alertName(a)+(a.dir==='above'?' وصل أو تجاوز ':' نزل إلى ')+moneyCode(a.price,code)+' للغرام'+(v!==null?' (هلأ: '+fmtCode(v,code)+')':'')+'</span><button class="x" data-act="alert-del" data-id="'+a.id+'" aria-label="إخفاء">×</button></div>'}).join('');
+}
+function alertsSection(){
+  var code=alertCode(),ci=codeInfo(code),h='<details class="acc" style="margin-top:12px"'+((S.alerts||[]).length?' open':'')+'><summary>تنبيه السعر</summary><div class="in"><p class="fine" style="margin-top:0">حدد سعر للغرام (بعملة بلدك: '+ci.cur+'). لما تفتح التطبيق ويكون السعر وصله، بنطلعلك تنبيه. التنبيه يشتغل داخل التطبيق فقط، ومش إشعار على الموبايل.</p>';
+  (S.alerts||[]).forEach(function(a){h+='<div class="row-i"><div class="t"><b>'+alertName(a)+'</b><small>'+(a.dir==='above'?'لما يوصل ':'لما ينزل إلى ')+moneyCode(a.price,code)+' للغرام'+(a.fired?' · تحقق':'')+'</small></div><button class="btn ghost small" data-act="alert-del" data-id="'+a.id+'">حذف</button></div>'});
+  var opts=KARATS.map(function(k){return '<option value="gold:'+k+'">ذهب عيار '+k+'</option>'}).join('')+SILVERS.map(function(k){return '<option value="silver:'+k+'">فضة '+k+'</option>'}).join('');
+  var cur=ui.prices?metalPerGram(ui.prices,'gold',21,code,S.metalAdj||0):null;
+  h+='<label class="l" for="al-m">المعدن</label><select class="f" id="al-m">'+opts+'</select><div class="inl"><div style="flex:1"><label class="l" for="al-d">نبّهني لما</label><select class="f" id="al-d"><option value="above">يرتفع إلى</option><option value="below">ينزل إلى</option></select></div><div style="flex:1"><label class="l" for="al-p">السعر للغرام</label><input class="f" id="al-p" inputmode="decimal" placeholder="'+(cur!==null?fmtCode(cur,code):'')+'"></div></div>'+(cur!==null?'<p class="fine" style="margin:4px 0">سعر عيار 21 الآن حوالي '+fmtCode(cur,code)+' '+ci.cur+' (الخانة تعرضه كمثال).</p>':'')+'<button class="btn block" data-act="alert-add">أضف تنبيه</button></div></details>';
+  return h;
 }
 function agoText(iso){
   var t=Date.parse(iso||'');if(!isFinite(t))return '';var m=Math.max(0,Math.round((Date.now()-t)/60000));
@@ -1982,6 +2008,7 @@ function sheetMetals(){
     else rowsP.forEach(function(r){h+='<div style="display:flex;justify-content:space-between;padding:3px 0"><span>'+r[0]+'</span><b>'+moneyCode(r[1],view)+'</b></div>'});
     h+='<p class="fine" style="margin:6px 0 0">آخر تحديث: '+(agoText(pr.fetched_at||pr.as_of)||'—')+(pr.stale?' — الأسعار قديمة لأن المصدر غير متاح حالياً، وهي آخر سعر معروف.':'')+' <button class="link" style="display:inline;margin:0" data-act="metal-refresh">تحديث</button></p>';
   }else h+='<p class="fine">جاري تحميل الأسعار…</p>';
+  h+=alertsSection();
   h+='<h3 class="sub" style="margin:14px 0 4px">تعديل السعر ليطابق محلك</h3><div class="inl" style="align-items:center"><input class="f" data-act="metal-adj" inputmode="decimal" dir="ltr" style="max-width:110px;text-align:start" value="'+adj+'" aria-label="نسبة التعديل"><span class="fine" style="flex:1">% (مثلاً −3 إذا الصايغ بيشتري بأقل من السعر العالمي)</span></div></div></details>'+
     '<p class="fine" style="margin-top:14px">الأسعار تقديرية: السعر العالمي للذهب والفضة محوّل لعملتك. سعر الصايغ عندك قد يختلف بسبب المصنعية وفرق الشراء والبيع، والمصنعية اللي دفعتها ما بترجع عند البيع. المعلومات للمتابعة فقط وليست نصيحة استثمارية.</p>';
   return '<div class="scrim" data-act="metal-close"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="خزنتي"><div class="grab"></div><div class="sh-h"><h2 class="disp">خزنتي <span class="sh-sub">ذهبك وفضتك</span> '+fb()+'</h2><button class="sh-x" data-act="metal-close" aria-label="إغلاق">×</button></div>'+h+'</section>';
@@ -2471,6 +2498,14 @@ document.addEventListener('click',function(e){
   if(a==='scan-manual'){ui.scan=null;ui.sheet='add';ui.addType='exp';ui.editId=null;ui.multi=[];render();return}
   if(a==='ai-consent'){S.aiConsent=true;saveUser();render();return}
   if(a==='ai-decline'){S.aiConsent=false;saveUser();render();return}
+  if(a==='alert-add'){
+    var am=($('#al-m')||{}).value||'gold:21',ap=toNum(($('#al-p')||{}).value),ad=($('#al-d')||{}).value==='below'?'below':'above',pt=am.split(':');
+    if(isNaN(ap)||ap<=0){toast('اكتب السعر المطلوب للغرام');return}
+    if((S.alerts||[]).length>=10){toast('الحد الأقصى 10 تنبيهات');return}
+    S.alerts=S.alerts||[];S.alerts.push({id:uid(),metal:pt[0],purity:+pt[1],dir:ad,price:ap,fired:false,at:0});saveUser();ui.pricesTried=false;
+    if(!ui.prices)ensurePrices();else checkAlerts();render();toast('تمت إضافة التنبيه');return;
+  }
+  if(a==='alert-del'){S.alerts=(S.alerts||[]).filter(function(x){return x.id!==id});saveUser();render();return}
   if(a==='install-app'){var di=deferredInstall;if(di){di.prompt();Promise.resolve(di.userChoice).then(function(){deferredInstall=null;render()}).catch(function(){})}return}
   if(a==='install-hide'){try{localStorage.setItem('dn_inst_hide','1')}catch(e){}render();return}
   if(a==='pin-key'){
