@@ -321,6 +321,14 @@ details.acc .in{padding:0 0 12px}
 .piece .pc-a .del{color:var(--muted);font-weight:500}
 details.more.add summary{border:1.5px dashed var(--accent);border-radius:14px;padding:12px;text-align:center;font-size:15px}
 details.more.add[open] summary{margin-bottom:8px}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 6px}
+.ch-i{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px 8px;transition:transform .14s ease}
+.ch-i:active{transform:scale(.97)}
+.ch-i b{font-size:16px}.ch-i small{color:var(--muted);font-size:12.5px;line-height:1.4}
+.ch-i .tl-c{width:56px;height:56px;border-radius:19px;margin-bottom:6px}
+.spin{width:40px;height:40px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:spin .9s linear infinite;margin:14px auto 8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.prev{display:block;max-width:100%;max-height:230px;margin:8px auto;border-radius:16px;object-fit:contain;box-shadow:0 8px 20px -12px rgba(0,0,0,.4)}
 .flag.warn{background:color-mix(in srgb,var(--bad) 20%,var(--surface))}
 .chk{border-radius:12px;padding:8px 12px;font-size:14px;margin:8px 0;border:1.5px solid var(--line)}
 .chk.ok{border-color:var(--good);color:var(--good)}
@@ -473,7 +481,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,locked:false,lockY:0,tool:null,hist:null,histTs:0,histBusy:false,histErr:false,chartRange:'6m',chartCur:null,chartModel:null,metalEdit:null,metalWarnKey:null,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,scan:null,scanPrev:null,locked:false,lockY:0,tool:null,hist:null,histTs:0,histBusy:false,histErr:false,chartRange:'6m',chartCur:null,chartModel:null,metalEdit:null,metalWarnKey:null,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -674,6 +682,7 @@ var IC={
   gold:'<ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/>',
   repeat:'<path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2M20 5v4h-4M4 19v-4h4"/>',
   chart:'<path d="M5 20V11M12 20V4M19 20v-6M3 20h18"/>',
+  image:'<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>',
   mic:'<path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
   trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'
 };
@@ -739,7 +748,7 @@ function homeTiles(s,p,isCur){
 }
 function quickActions(){
   var a=[];
-  if(CLOUD){a.push(['qa-scan','camera','صوّر فاتورة']);if(!ui.stmtOff)a.push(['stmt-open','doc','كشف حساب'])}
+  if(CLOUD){if(!ui.scanOff)a.push(['qa-scan','camera','صوّر فاتورة']);if(!ui.stmtOff)a.push(['stmt-open','doc','كشف حساب'])}
   a.push(['split-open','split','قسّم فاتورة']);a.push(['metal-open','gold','خزنتي']);
   return '<div class="qa">'+a.map(function(x){return '<button class="qa-i" data-act="'+x[0]+'"><span class="qa-c">'+icon(x[1])+'</span><span>'+x[2]+'</span></button>'}).join('')+'</div>';
 }
@@ -815,7 +824,7 @@ function viewTools(){
   else g1.push(toolCard('tool','merchant','دفتر الديون',S.debts.length+' زبون',' data-t="persona"'));
   g1.push(toolCard('tool','repeat','حركات متكررة',(S.recurring||[]).length+' حركة',' data-t="recurring"'));
   g1.push(toolCard('open-report','chart','تقرير الشهر',monthName(MONTH),''));
-  if(CLOUD){g2.push(toolCard('qa-scan','camera','صوّر فاتورة','بيقرأ المبلغ والمتجر','',true));if(!ui.stmtOff)g2.push(toolCard('stmt-open','doc','كشف حساب البنك','PDF أو صورة، وبتراجعه','',true))}
+  if(CLOUD){if(!ui.scanOff)g2.push(toolCard('qa-scan','camera','صوّر فاتورة','بيقرأ المبلغ والمتجر','',true));if(!ui.stmtOff)g2.push(toolCard('stmt-open','doc','كشف حساب البنك','PDF أو صورة، وبتراجعه','',true))}
   g2.push(toolCard('split-open','split','قسّم فاتورة','بين الأصحاب وبالضريبة','',true));
   g2.push(toolCard('metal-open','gold','خزنتي','ذهبك وفضتك وربحك مع الوقت','',true));
   return '<main class="shell">'+topbar()+'<h2 class="sec disp">الأدوات</h2><h3 class="sub">أدواتك</h3><div class="tools">'+g1.join('')+'</div><h3 class="sub">أدوات ذكية</h3><div class="tools">'+g2.join('')+'</div></main>';
@@ -889,10 +898,6 @@ function quickItems(){
 function syncChips(){
   [['cat','#f-cat'],['inc','#f-inc']].forEach(function(w){var sel=$(w[1]);if(!sel)return;document.querySelectorAll('.cchip[data-w="'+w[0]+'"]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-k')===sel.value)})});
 }
-function startScan(){
-  if(S.scanConsent===true){var fi=$('#scan-in');if(fi)fi.click();return}
-  showScanConsent();
-}
 function sheetAdd(){
   var ed=!!ui.editId;
   var cs=PCATS[S.persona].map(function(k){return '<option value="'+k+'">'+CATS[k].n+'</option>'}).join('');
@@ -904,11 +909,11 @@ function sheetAdd(){
   var q='';
   if(!ed){quickItems();if(ui.quick.length)q='<div class="chips" style="margin:8px 0">'+ui.quick.map(function(o,i){return '<button class="qchip" data-act="quick" data-i="'+i+'">'+esc(o.note)+' · '+fmt(o.amt)+'</button>'}).join('')+'</div>'}
   var mic=voiceSupported()?'<button class="btn ghost ibtn" id="mic-btn" data-act="mic" aria-label="تسجيل صوتي">'+icon('mic')+'<span id="mic-txt"></span></button>':'';
-  var cam=(!ed&&CLOUD&&!ui.scanOff)?'<button class="btn ghost ibtn" data-act="scan-open" aria-label="صوّر الفاتورة">'+icon('camera')+'</button><input type="file" id="scan-in" accept="image/*" style="display:none">':'';
+  var cam=(!ed&&CLOUD&&!ui.scanOff)?'<button class="btn ghost ibtn" data-act="scan-open" aria-label="صوّر الفاتورة">'+icon('camera')+'</button>':'';
   var smart=ed?'':'<div class="smartrow"><input class="f" id="smart" placeholder="اكتب أو احكي: '+ph+'" aria-label="اكتب حركاتك">'+mic+cam+'<button class="btn small" data-act="parse">افهمها</button></div>';
   var demoPaste=(ed||CLOUD)?'':'<button class="link2" data-act="paste-mode" style="margin-top:4px">الصق نصاً: رسالة بنك أو كشف حساب</button><div id="pastewrap" style="display:none"><textarea class="f" id="paste-in" rows="5" style="margin-top:8px" placeholder="الصق هنا رسالة البنك، أو أسطراً من كشف الحساب، أو نص الفاتورة"></textarea><button class="btn block" data-act="paste-go">حلّل النص</button></div>';
   return '<div class="scrim" data-act="close-sheet"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="سجّل حركة"><div class="grab"></div><h2 class="disp">'+(ed?'تعديل حركة':'سجّل حركة')+'</h2>'+
-    smart+'<div class="hint" id="hint" aria-live="polite"></div>'+(voiceSupported()||ed?'':'<p class="fine" style="margin:2px 0 0">التسجيل الصوتي مش متاح بهالمتصفح. استخدم أيقونة المايك اللي بلوحة مفاتيح موبايلك لتحكي بدل ما تكتب.</p>')+'<div id="multi"></div><div id="scanbox"></div>'+q+demoPaste+
+    smart+'<div class="hint" id="hint" aria-live="polite"></div>'+(voiceSupported()||ed?'':'<p class="fine" style="margin:2px 0 0">التسجيل الصوتي مش متاح بهالمتصفح. استخدم أيقونة المايك اللي بلوحة مفاتيح موبايلك لتحكي بدل ما تكتب.</p>')+'<div id="multi"></div>'+q+demoPaste+
     '<div class="seg"><button data-act="set-type" data-t="exp" class="on">مصروف</button><button data-act="set-type" data-t="inc">'+incLbl+'</button></div>'+
     '<div class="amtbox"><input class="f big-in" id="f-amt" inputmode="decimal" placeholder="0" aria-label="المبلغ"><span class="cur">'+C().cur+'</span></div>'+
     '<div id="catwrap"><div class="cchips">'+chE+'</div><select class="f" id="f-cat" style="display:none" aria-label="التصنيف">'+cs+'</select></div>'+
@@ -972,7 +977,7 @@ function render(){
   if(ui.screen==='country'){app.innerHTML=E(viewCountry());return}
   if(ui.screen==='persona'){app.innerHTML=E(viewPersona());return}
   var v=ui.tab==='home'?viewHome():ui.tab==='extra'?viewExtra():ui.tab==='advisor'?viewAdvisor():viewAccount();
-  app.innerHTML=E(v)+navHTML()+(ui.sheet==='add'?sheetAdd():ui.sheet==='report'?sheetReport():ui.sheet==='stmt'?sheetStmt():ui.sheet==='fb'?sheetFb():ui.sheet==='split'?sheetSplit():ui.sheet==='metals'?sheetMetals():'');
+  app.innerHTML=E(v)+navHTML()+(ui.sheet==='add'?sheetAdd():ui.sheet==='report'?sheetReport():ui.sheet==='stmt'?sheetStmt():ui.sheet==='fb'?sheetFb():ui.sheet==='split'?sheetSplit():ui.sheet==='metals'?sheetMetals():ui.sheet==='scan'?sheetScan():'');
   if(anim)countUp();
   if(ui.screen==='app'&&S.metals&&S.metals.length&&!ui.prices&&!ui.pricesBusy&&!ui.pricesTried){ui.pricesTried=true;ensurePrices()}
   if(ui.sheet==='stmt'&&ui.stmt&&ui.stmt.phase==='review')stmtSetCount();
@@ -1494,14 +1499,14 @@ function splitShareText(){
 function sheetSplit(){
   var sp=ui.split||{phase:'start'},h='';
   if(sp.phase==='consent'){
-    h='<div class="lockbox"><h3>قبل ما تصوّر</h3><p class="fine" style="margin:0 0 8px">لما تصوّر الفاتورة، بنرسل الصورة لـ Google (نموذج Gemini) عشان يقرأ الأصناف والأسعار. صوّر الفاتورة فقط وتجنّب إظهار بيانات شخصية. ما بنحفظ الصورة عندنا. بالنسخة المجانية عند Google ممكن تستخدم الطلبات لتحسين منتجاتها. <a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p><button class="btn block" data-act="split-consent">موافق، صوّر</button><button class="btn ghost block" data-act="split-close">لا، شكراً</button></div>';
+    h='<div class="lockbox"><h3>قبل ما تصوّر</h3><p class="fine" style="margin:0 0 8px">لما تصوّر الفاتورة، بنرسل الصورة لـ Google (نموذج Gemini) عشان يقرأ الأصناف والأسعار. صوّر الفاتورة فقط وتجنّب إظهار بيانات شخصية. ما بنحفظ الصورة عندنا. بالنسخة المجانية عند Google ممكن تستخدم الطلبات لتحسين منتجاتها. <a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p><button class="btn block" data-act="split-consent">موافق، كمّل</button><button class="btn ghost block" data-act="split-close">لا، شكراً</button></div>';
   }else if(sp.phase==='loading'){
     h='<p class="muted" style="text-align:center;padding:30px 0">جاري قراءة الفاتورة… ممكن ياخد نص دقيقة.</p>';
   }else if(sp.phase==='edit'){
     h=splitEditHTML();
   }else{
     h='<p class="fine" style="margin:0 0 8px">صوّر الفاتورة، وحدّد مين أكل شو، وبيطلع كم على كل واحد مع حصته من الضريبة والخدمة. الحساب بيتم بالكود وإنت بتراجع كل رقم.</p>'+
-      (CLOUD&&!ui.billOff?'<button class="btn block" data-act="split-photo">صوّر الفاتورة</button><input type="file" id="split-in" accept="image/*" style="display:none">':'')+
+      (CLOUD&&!ui.billOff?'<div class="choice"><button class="ch-i" data-act="split-cam"><span class="tl-c">'+icon('camera')+'</span><b>صوّر الآن</b><small>افتح الكاميرا</small></button><button class="ch-i" data-act="split-pick"><span class="tl-c">'+icon('image')+'</span><b>اختر من الصور</b><small>صورة محفوظة بجهازك</small></button></div><input type="file" id="split-cam" accept="image/*" capture="environment" style="display:none"><input type="file" id="split-in" accept="image/*" style="display:none">':'')+
       '<button class="btn ghost block" data-act="split-manual">أدخل الأصناف يدوياً</button>'+
       (sp.msg?'<div class="hint err" aria-live="polite" style="margin-top:10px">'+esc(sp.msg)+'</div>':'');
   }
@@ -1800,10 +1805,6 @@ function pickDate(){
   return v<mn?TODAY:v;
 }
 function scanMsg(t,err){var b=$('#hint');if(b){b.textContent=t;b.className='hint'+(err?' err':'')}}
-function showScanConsent(){
-  var box=$('#scanbox');if(!box)return;
-  box.innerHTML='<div class="lockbox"><h3>قبل ما تصوّر</h3><p class="fine" style="margin:0 0 8px">لما تصوّر فاتورة، بنرسل الصورة لـ Google (نموذج Gemini) عشان يقرأ المبلغ واسم المتجر. الفاتورة ممكن تحتوي معلومات شخصية (اسم، أجزاء من رقم بطاقة)، فصوّر الفاتورة فقط. ما بنحفظ الصورة عندنا. بالنسخة المجانية عند Google ممكن تستخدم الطلبات لتحسين منتجاتها. التفاصيل بـ<a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p><button class="btn block" data-act="scan-consent">موافق، صوّر</button><button class="btn ghost block" data-act="scan-decline">لا، شكراً</button></div>';
-}
 function prepareImage(file){
   return new Promise(function(resolve,reject){
     var fr=new FileReader();
@@ -1836,12 +1837,35 @@ function applyScan(j){
   $('#f-note').value=j.merchant||'';
   var fd=$('#f-date');if(fd&&j.date&&j.date<=TODAY)fd.value=j.date;
   if(typeof j.left==='number')ui.scanLeft=j.left;
-  scanMsg('قرأت: '+fmt(j.amount)+' '+C().cur+(j.merchant?' — '+j.merchant:'')+(j.date?' — '+j.date:'')+'. راجع وعدّل إذا لزم ثم احفظ.'+(typeof j.left==='number'?' (متبقي '+j.left+' فواتير اليوم)':''));
+  scanMsg('قرأت: '+fmt(j.amount)+' '+C().cur+(j.merchant?' — '+j.merchant:'')+(j.date?' — \u2066'+j.date+'\u2069':'')+'. راجع وعدّل إذا لزم ثم احفظ.'+(typeof j.left==='number'?' (متبقي '+j.left+' فواتير اليوم)':''));
+}
+function openScan(){
+  ui.scan={phase:S.scanConsent===true?'choose':'consent'};
+  ui.sheet='scan';render();
+}
+function sheetScan(){
+  var sc=ui.scan||{phase:'choose'},h='';
+  if(sc.phase==='consent'){
+    h='<div class="lockbox"><h3>قبل ما تصوّر</h3><p class="fine" style="margin:0 0 8px">لما تصوّر فاتورة، بنرسل الصورة لـ Google (نموذج Gemini) عشان يقرأ المبلغ واسم المتجر. الفاتورة ممكن تحتوي معلومات شخصية (اسم، أجزاء من رقم بطاقة)، فصوّر الفاتورة فقط. ما بنحفظ الصورة عندنا. بالنسخة المجانية عند Google ممكن تستخدم الطلبات لتحسين منتجاتها. التفاصيل بـ<a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p><button class="btn block" data-act="scan-consent">موافق، كمّل</button><button class="btn ghost block" data-act="scan-decline">لا، شكراً</button></div>';
+  }else if(sc.phase==='loading'){
+    h=(ui.scanPrev?'<img class="prev" src="'+ui.scanPrev+'" alt="الفاتورة">':'')+'<div class="spin" role="status" aria-label="جاري القراءة"></div><p class="muted" style="text-align:center;margin:0">جاري قراءة الفاتورة… ممكن ياخد كم ثانية.</p>';
+  }else{
+    h=(sc.msg?'<div class="hint err" aria-live="polite" style="margin:0 0 8px">'+esc(sc.msg)+'</div>':'')+
+      (ui.scanOff?'':'<p class="fine" style="margin:0 0 4px">اختار كيف بدك تجيب الفاتورة. بعد ما أقرأها بتنفتح نافذة التسجيل وفيها البيانات جاهزة لتراجعها.</p>'+
+      '<div class="choice"><button class="ch-i" data-act="scan-cam"><span class="tl-c">'+icon('camera')+'</span><b>صوّر الآن</b><small>افتح الكاميرا</small></button><button class="ch-i" data-act="scan-pick"><span class="tl-c">'+icon('image')+'</span><b>اختر من الصور</b><small>صورة محفوظة بجهازك</small></button></div>'+
+      '<input type="file" id="scan-cam" accept="image/*" capture="environment" style="display:none"><input type="file" id="scan-pick" accept="image/*" style="display:none">'+
+      '<p class="fine" style="margin:6px 0">نصيحة: صوّر الفاتورة كاملة وقريبة وبإضاءة كويسة.</p>')+
+      '<button class="link2" data-act="scan-manual">أو سجّل الحركة يدوياً</button>';
+  }
+  return '<div class="scrim" data-act="scan-close"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="صوّر فاتورة"><div class="grab"></div><div class="sh-h"><h2 class="disp">صوّر فاتورة '+fb()+'</h2><button class="sh-x" data-act="scan-close" aria-label="إغلاق">×</button></div>'+h+'</section>';
 }
 function scanFile(file){
   if(!file||ui.scanning)return;
-  ui.scanning=true;scanMsg('جاري قراءة الفاتورة…');
+  ui.scanning=true;
+  try{ui.scanPrev=URL.createObjectURL(file)}catch(e){ui.scanPrev=null}
+  ui.scan={phase:'loading'};render();
   var cats=PCATS[S.persona].map(function(k){return {k:k,n:CATS[k].n}});
+  var failMsg=null;
   prepareImage(file).then(function(b64){
     return Promise.resolve(sb.auth.getSession()).then(function(r){
       var ss=r&&r.data&&r.data.session;if(!ss)throw {code:'auth'};
@@ -1851,17 +1875,23 @@ function scanFile(file){
     return resp.json().catch(function(){return {}}).then(function(j){return {status:resp.status,j:j||{}}});
   }).then(function(o){
     var j=o.j;
-    if(o.status===200&&typeof j.amount==='number'){applyScan(j);return}
-    if(o.status===422){scanMsg('ما قدرت أقرأ الفاتورة. جرّب صورة أوضح وقريبة، والفاتورة كاملة بالإطار.',true);return}
-    if(o.status===429){scanMsg(j.reason==='global'?'قراءة الفواتير مشغولة اليوم. جرّب بكرة، أو اكتب المبلغ يدوي.':'خلص حدك اليومي لقراءة الفواتير. بيتجدد بكرة.',true);return}
-    if(o.status===503&&j.error==='ai_not_configured'){ui.scanOff=true;scanMsg('قراءة الفواتير غير مفعّلة حالياً.',true);return}
-    if(o.status===401){scanMsg('انتهت جلستك. سجّل دخولك من جديد.',true);return}
-    if(o.status===503||o.status===502){scanMsg('الخدمة مشغولة لحظة. جرّب بعد دقيقة.',true);return}
-    scanMsg('صار خطأ. جرّب مرة ثانية.',true);
-    if(o.status>=500)reportError('api','scan '+(j.error||'')+' '+o.status);
+    if(ui.sheet!=='scan')return;                       // سكّرها المستخدم أثناء القراءة
+    if(o.status===200&&typeof j.amount==='number'){
+      ui.scan=null;ui.sheet='add';ui.addType='exp';ui.editId=null;ui.multi=[];render();applyScan(j);return;
+    }
+    if(o.status===422)failMsg='ما قدرت أقرأ الفاتورة. جرّب صورة أوضح وقريبة، والفاتورة كاملة بالإطار.';
+    else if(o.status===429)failMsg=j.reason==='global'?'قراءة الفواتير مشغولة اليوم. جرّب بكرة، أو سجّل الحركة يدوياً.':'خلص حدك اليومي لقراءة الفواتير. بيتجدد بكرة، أو سجّل الحركة يدوياً.';
+    else if(o.status===503&&j.error==='ai_not_configured'){ui.scanOff=true;failMsg='قراءة الفواتير غير مفعّلة حالياً. سجّل الحركة يدوياً.'}
+    else if(o.status===401)failMsg='انتهت جلستك. سجّل دخولك من جديد.';
+    else if(o.status===503||o.status===502)failMsg='الخدمة مشغولة لحظة. جرّب بعد دقيقة.';
+    else{failMsg='صار خطأ. جرّب مرة ثانية.';if(o.status>=500)reportError('api','scan '+(j.error||'')+' '+o.status)}
   }).catch(function(e){
-    scanMsg(e&&e.code==='big'?'الصورة كبيرة كتير. جرّب صورة أصغر.':e&&e.code==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':e&&e.code==='read'?'ما قدرت أفتح الصورة.':'تعذّر الاتصال. جرّب مرة ثانية.',true);
-  }).then(function(){ui.scanning=false});
+    failMsg=e&&e.code==='big'?'الصورة كبيرة كتير. جرّب صورة أصغر.':e&&e.code==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':e&&e.code==='read'?'ما قدرت أفتح الصورة.':'تعذّر الاتصال. جرّب مرة ثانية.';
+  }).then(function(){
+    ui.scanning=false;
+    try{if(ui.scanPrev)URL.revokeObjectURL(ui.scanPrev)}catch(e){}ui.scanPrev=null;
+    if(failMsg&&ui.sheet==='scan'){ui.scan={phase:'choose',msg:failMsg};render()}
+  });
 }
 function fb(){return '<span class="fbadge">مجاني الآن</span>'}
 function onbSteps(){
@@ -2027,7 +2057,7 @@ document.addEventListener('click',function(e){
   if(a==='month'){var m=el.getAttribute('data-m');if(m){ui.month=m;ui.proMsg=false;ui.delArm=false;render()}return}
   if(a==='open-add'){ui.editId=null;ui.multi=[];ui.sheet='add';ui.addType='exp';render();return}
   if(a==='open-report'){ui.sheet='report';ui.delArm=false;ui.proMsg=false;ui.proOut='';ui.proSel=[];render();return}
-  if(a==='close-sheet'){ui.sheet=null;ui.editId=null;ui.multi=[];ui.stmt=null;ui.split=null;render();return}
+  if(a==='close-sheet'){ui.sheet=null;ui.editId=null;ui.multi=[];ui.stmt=null;ui.split=null;ui.scan=null;render();return}
   if(a==='set-type'){setType(el.getAttribute('data-t'));return}
   if(a==='parse'){doParse();return}
   if(a==='multi-del'){ui.multi.splice(+el.getAttribute('data-i'),1);showMulti();return}
@@ -2055,14 +2085,12 @@ document.addEventListener('click',function(e){
     return;
   }
   if(a==='pick-cat'){var pw=el.getAttribute('data-w'),pk=el.getAttribute('data-k'),psel=$(pw==='inc'?'#f-inc':'#f-cat');if(psel)psel.value=pk;document.querySelectorAll('.cchip[data-w="'+pw+'"]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-k')===pk)});return}
-  if(a==='qa-scan'){ui.sheet='add';ui.addType='exp';ui.editId=null;ui.multi=[];render();startScan();return}
-  if(a==='scan-open'){startScan();return}
-  if(false){
-    if(S.scanConsent===true){var fi=$('#scan-in');if(fi)fi.click();return}
-    showScanConsent();return;
-  }
-  if(a==='scan-consent'){S.scanConsent=true;saveUser();var bx=$('#scanbox');if(bx)bx.innerHTML='';var fi2=$('#scan-in');if(fi2)fi2.click();return}
-  if(a==='scan-decline'){var bx2=$('#scanbox');if(bx2)bx2.innerHTML='';return}
+  if(a==='qa-scan'||a==='scan-open'){openScan();return}
+  if(a==='scan-consent'){S.scanConsent=true;saveUser();ui.scan={phase:'choose'};render();return}
+  if(a==='scan-decline'||a==='scan-close'){ui.sheet=null;ui.scan=null;render();return}
+  if(a==='scan-cam'){var sc1=$('#scan-cam');if(sc1)sc1.click();return}
+  if(a==='scan-pick'){var sc2=$('#scan-pick');if(sc2)sc2.click();return}
+  if(a==='scan-manual'){ui.scan=null;ui.sheet='add';ui.addType='exp';ui.editId=null;ui.multi=[];render();return}
   if(a==='ai-consent'){S.aiConsent=true;saveUser();render();return}
   if(a==='ai-decline'){S.aiConsent=false;saveUser();render();return}
   if(a==='hide-banner'){S.hideBanner=true;saveUser();render();return}
@@ -2189,8 +2217,8 @@ document.addEventListener('click',function(e){
   }
   if(a==='split-open'){ui.sheet='split';ui.split={phase:'start'};render();return}
   if(a==='split-close'){if(ui.splitBusy)return;ui.sheet=null;ui.split=null;render();return}
-  if(a==='split-photo'){if(S.scanConsent!==true){ui.split={phase:'consent'};render();return}var spf=$('#split-in');if(spf)spf.click();return}
-  if(a==='split-consent'){S.scanConsent=true;saveUser();ui.split={phase:'start'};render();var spf2=$('#split-in');if(spf2)spf2.click();return}
+  if(a==='split-cam'||a==='split-pick'){if(S.scanConsent!==true){ui.split={phase:'consent'};render();return}var spf=$(a==='split-cam'?'#split-cam':'#split-in');if(spf)spf.click();return}
+  if(a==='split-consent'){S.scanConsent=true;saveUser();ui.split={phase:'start'};render();return}
   if(a==='split-manual'){ui.split=splitFresh([{id:'i1',name:'',total:'',who:[]}],{});render();return}
   if(a==='split-reset'){ui.split={phase:'start'};render();return}
   if(a==='split-add-person'){
@@ -2255,13 +2283,13 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('change',function(e){
   var el=e.target;
-  if(el&&el.id==='split-in'){var spfile=el.files&&el.files[0];if(spfile)splitFile(spfile);try{el.value=''}catch(x){}return}
+  if(el&&(el.id==='split-in'||el.id==='split-cam')){var spfile=el.files&&el.files[0];if(spfile)splitFile(spfile);try{el.value=''}catch(x){}return}
   if(splitField(el))return;
   if(metalField(el))return;
   if(el&&el.id==='stmt-in'){var sf=el.files&&el.files[0];if(sf)stmtFile(sf);try{el.value=''}catch(x){}return}
   if(el&&el.getAttribute&&el.getAttribute('data-act')==='stmt-toggle'&&ui.stmt&&ui.stmt.rows){ui.stmt.rows[+el.getAttribute('data-i')].sel=!!el.checked;stmtSetCount();return}
   if(el&&el.getAttribute&&el.getAttribute('data-act')==='stmt-cat'&&ui.stmt&&ui.stmt.rows){ui.stmt.rows[+el.getAttribute('data-i')].cat=el.value;return}
-  if(el&&el.id==='scan-in'){var f=el.files&&el.files[0];if(f)scanFile(f);try{el.value=''}catch(x){}return}
+  if(el&&(el.id==='scan-cam'||el.id==='scan-pick')){var scf=el.files&&el.files[0];if(scf)scanFile(scf);try{el.value=''}catch(x){}return}
   if(el.getAttribute&&el.getAttribute('data-act')==='bill-toggle'){
     payBill(el.getAttribute('data-id'),el.checked);
   }
