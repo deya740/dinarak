@@ -407,7 +407,7 @@ textarea.f{width:100%;border:1.5px solid var(--line);background:var(--surface);b
 .btn:active,.qchip:active,.cbtn:active,.pcard:active{transform:scale(.97)}
 @media (hover:hover){.pcard:hover{transform:translateY(-3px);box-shadow:0 16px 30px -16px rgba(0,0,0,.5)}.cbtn:hover{border-color:var(--accent)}}
 .note{border-radius:22px;box-shadow:0 24px 44px -24px color-mix(in srgb,var(--accent) 75%,#000);transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .18s ease-out;will-change:transform}
-.note .sheen{position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(circle at var(--mx,25%) var(--my,0%),rgba(255,255,255,.4),transparent 48%);mix-blend-mode:soft-light}
+.note .sheen{position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(circle at var(--mx,25%) var(--my,0%),rgba(255,255,255,.4),transparent 48%);}
 .note .shine{position:absolute;inset:-60% -30%;z-index:2;pointer-events:none;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.24) 50%,transparent 58%);opacity:0}
 .note .big{font-size:74px}
 nav.nav{background:color-mix(in srgb,var(--surface) 78%,transparent);-webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4)}
@@ -456,6 +456,12 @@ nav.nav button[aria-current="page"]::after{content:'';position:absolute;bottom:-
 html,body,button,a,.qchip,.tool,.row-i,.chip,.btn,summary,label,select{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 button,.qchip{-webkit-user-select:none;user-select:none}
 input,select,textarea{font-size:max(16px,1em)}
+
+/* hero number: never clipped, no GPU-blend glitches on Android */
+.note{isolation:isolate}
+.note .big{font-size:clamp(40px,15.5vw,74px);color:var(--accent-ink);white-space:nowrap;display:flex;align-items:baseline;gap:.15em;justify-content:flex-start}
+.note .sheen{mix-blend-mode:normal;opacity:.35}
+@media (hover:none),(pointer:coarse){.note{transform:none!important;will-change:auto;transition:none}.note .sheen{display:none}.note .shine{display:none}}
 </style>
 </head>
 <body>
@@ -1314,6 +1320,7 @@ function render(){
   if(ui.screen==='app'&&(ui.pinLocked||ui.pinSetup)){app.innerHTML=viewPin();return}
   var v=ui.tab==='home'?viewHome():ui.tab==='extra'?viewExtra():ui.tab==='advisor'?viewAdvisor():viewAccount();
   app.innerHTML=E(v)+navHTML()+(ui.sheet==='add'?sheetAdd():ui.sheet==='report'?sheetReport():ui.sheet==='stmt'?sheetStmt():ui.sheet==='fb'?sheetFb():ui.sheet==='split'?sheetSplit():ui.sheet==='metals'?sheetMetals():ui.sheet==='scan'?sheetScan():ui.sheet==='tx'?sheetTx():'');
+  fitBig();
   if(anim)countUp();
   if(ui.screen==='app'&&((S.metals&&S.metals.length)||(S.alerts&&S.alerts.length))&&!ui.prices&&!ui.pricesBusy&&!ui.pricesTried){ui.pricesTried=true;ensurePrices()}
   if(ui.sheet==='stmt'&&ui.stmt&&ui.stmt.phase==='review')stmtSetCount();
@@ -2490,6 +2497,13 @@ function dayBars(ym,s){
   for(i=1;i<=n;i++){var pc=mx?Math.max(4,Math.round(tot[i]/mx*100)):4;h+='<i class="'+(i===cur?'t':tot[i]?'':'z')+'" style="height:'+pc+'%;animation-delay:'+(i*14)+'ms"></i>'}
   return '<div class="days" role="img" aria-label="الصرف اليومي خلال الشهر">'+h+'</div><div class="dl"><span>1</span><span>'+n+'</span></div>';
 }
+function fitBig(){
+  try{document.querySelectorAll('.note .big').forEach(function(b){
+    b.style.fontSize='';var max=b.clientWidth,size=parseFloat(getComputedStyle(b).fontSize)||60,k=0;
+    function w(){var t=0;for(var i=0;i<b.children.length;i++)t+=b.children[i].getBoundingClientRect().width;return t}
+    while(w()>max-2&&size>26&&k<40){size-=2;b.style.fontSize=size+'px';k++}
+  })}catch(e){}
+}
 function countUp(){
   var els=document.querySelectorAll('[data-count]');
   if(!els||!els.length||!window.requestAnimationFrame)return;
@@ -3189,6 +3203,7 @@ if(CLOUD){
   setTimeout(function(){if(ui.loading&&!cloud.uid){ui.loading=false;render()}},oauthReturn?15000:5000);
   if(window.addEventListener){window.addEventListener('online',function(){if(cloud.dirty)pushCloud();ui.offlineData=false;if(S&&ui.screen==='app'&&!ui.sheet)render()});window.addEventListener('offline',function(){if(S&&ui.screen==='app'&&!ui.sheet)render()})}
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'&&cloud.dirty)pushCloud()});
+  try{window.addEventListener('resize',function(){fitBig()})}catch(e){}
 }else{
   var em=ls(function(){return localStorage.getItem(SKEY)});
   if(em){var u=loadUser(em);if(u)S=u}
