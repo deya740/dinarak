@@ -604,7 +604,7 @@ function cleanLists(u){
     if(x.billId)o.billId=String(x.billId);if(x.ext)o.ext=String(x.ext).slice(0,140);if(x.rid)o.rid=String(x.rid);return o});
   u.goals=(Array.isArray(u.goals)?u.goals:[]).filter(function(g){return g&&isNum(g.target)&&g.target>0&&isNum(g.saved)}).map(function(g){return {id:String(g.id||uid()),name:String(g.name||'').slice(0,80),target:g.target,saved:g.saved}});
   u.bills=(Array.isArray(u.bills)?u.bills:[]).filter(function(b){return b&&isNum(b.amt)&&isNum(b.day)}).map(function(b){return {id:String(b.id||uid()),name:String(b.name||'').slice(0,80),amt:b.amt,day:b.day,paid:!!b.paid}});
-  u.debts=(Array.isArray(u.debts)?u.debts:[]).filter(function(d){return d&&isNum(d.owed)}).map(function(d){var o={id:String(d.id||uid()),name:String(d.name||'').slice(0,80),owed:d.owed};if(d.phone)o.phone=cleanPhone(d.phone);return o});
+  u.debts=(Array.isArray(u.debts)?u.debts:[]).filter(function(d){return d&&isNum(d.owed)}).map(function(d){var o={id:String(d.id||uid()),name:String(d.name||'').slice(0,80),owed:d.owed};if(d.phone)o.phone=cleanPhone(d.phone);if(d.fr)o.fr=true;return o});
   var bdg={};if(u.budgets&&typeof u.budgets==='object'){Object.keys(u.budgets).forEach(function(k){var v=u.budgets[k];if(CATS[k]&&isNum(v)&&v>0&&v<=1e9)bdg[k]=v})}u.budgets=bdg;
   u.metals=(Array.isArray(u.metals)?u.metals:[]).slice(0,100).filter(function(m){return m&&(m.metal==='gold'||m.metal==='silver')&&isNum(m.grams)&&m.grams>0&&m.grams<=1000000&&isNum(m.cost)&&m.cost>=0}).map(function(m){
     var okP=m.metal==='gold'?(isNum(m.purity)&&m.purity>=8&&m.purity<=24):(isNum(m.purity)&&m.purity>=500&&m.purity<=1000);
@@ -954,6 +954,15 @@ function viewPersonaTool(){
   }
   return '<main class="shell">'+topbar()+toolBack()+h+'</main>';
 }
+function viewFriends(){
+  var fl=S.debts.filter(function(d){return d.fr}),tt=fl.reduce(function(a,d){return a+d.owed},0);
+  return '<main class="shell">'+topbar()+toolBack()+'<h2 class="sec disp">سلف الأصدقاء</h2><p class="fine" style="margin-top:-4px">اللي دفعته عنهم بتقسيم الفاتورة. المجموع المستحق لك: '+amt(tt)+'. لما حدا يسدّد، المبلغ بينقص من دينه وما بينحسب دخل جديد، لأنك سجّلت حصتك أنت بس كمصروف.</p>'+
+  (fl.sort(function(a,b){return b.owed-a.owed}).map(function(d){
+    return '<div class="row-i" style="border-bottom:0"><div class="t"><b style="font-weight:600">'+esc(d.name)+'</b><small>عليه'+(d.phone?' · <bdi dir="ltr">'+esc(d.phone)+'</bdi>':'')+'</small></div><span style="font-weight:600">'+amt(d.owed)+'</span></div>'+
+    '<div class="inl" style="padding:0 0 8px"><input class="f" id="pay-'+d.id+'" inputmode="decimal" placeholder="المبلغ المسدّد" aria-label="دفعة من '+esc(d.name)+'"><button class="btn ghost small" data-act="debt-pay" data-id="'+d.id+'">سدّد</button></div>'+
+    '<div class="inl" style="padding:0 0 10px;border-bottom:1.5px dashed var(--line)"><button class="btn small" data-act="debt-wa" data-id="'+d.id+'">ذكّره بواتساب</button><button class="btn ghost small" data-act="debt-phone" data-id="'+d.id+'">'+(d.phone?'عدّل الرقم':'أضف رقمه')+'</button><button class="btn ghost small" data-act="debt-forgive" data-id="'+d.id+'">شطب</button></div>';
+  }).join('')||'<div class="empty">ما في سلف. بتظهر هون لما تدفع عن أصحابك بتقسيم الفاتورة.</div>')+'</main>';
+}
 function toolBack(){return '<button class="link2" style="margin:0 0 6px" data-act="tool-back">→ الأدوات</button>'}
 function toolCard(act,ic,title,desc,extra,badge){return '<button class="tool" data-act="'+act+'"'+(extra||'')+'>'+(badge?fb():'')+'<span class="tl-c">'+icon(ic)+'</span><b>'+title+'</b><small>'+desc+'</small></button>'}
 function viewTools(){
@@ -961,6 +970,7 @@ function viewTools(){
   if(p==='student')g1.push(toolCard('tool','student','أهدافي',S.goals.length+' هدف',' data-t="persona"'));
   else if(p==='employee')g1.push(toolCard('tool','employee','التزاماتي',S.bills.filter(function(b){return !b.paid}).length+' لسا ما اندفعت',' data-t="persona"'));
   else g1.push(toolCard('tool','merchant','دفتر الديون',S.debts.length+' زبون',' data-t="persona"'));
+  if(p!=='merchant'&&S.debts.some(function(d){return d.fr}))g1.push(toolCard('tool','split','سلف الأصدقاء',S.debts.filter(function(d){return d.fr}).length+' شخص',' data-t="friends"'));
   (function(){var br=budgetRows(MONTH),tb=br.reduce(function(a,r){return a+r.b},0),ts=br.reduce(function(a,r){return a+r.sp},0);g1.push(toolCard('tool','budget','الميزانية',br.length?br.length+' تصنيف · '+Math.round(ts/tb*100)+'% مستخدم':'حدّد سقف لكل تصنيف',' data-t="budget"'))})();
   g1.push(toolCard('tool','tag','التصنيفات','غيّر الأسماء وأضف تصنيفاتك',' data-t="cats"'));
   g1.push(toolCard('tool','repeat','حركات متكررة',(S.recurring||[]).length+' حركة',' data-t="recurring"'));
@@ -975,6 +985,7 @@ function viewExtra(){
   if(ui.tool==='cats')return '<main class="shell">'+topbar()+toolBack()+viewCats()+'</main>';
   if(ui.tool==='budget')return '<main class="shell">'+topbar()+toolBack()+viewBudgets()+'</main>';
   if(ui.tool==='persona')return viewPersonaTool();
+  if(ui.tool==='friends')return viewFriends();
   if(ui.tool==='recurring')return '<main class="shell">'+topbar()+toolBack()+recSection()+'</main>';
   return viewTools();
 }
@@ -1626,7 +1637,7 @@ function waPhone(raw){
   if(d.indexOf('00')===0)d=d.slice(2);else if(d.charAt(0)==='0')d=(CALLCC[S&&S.country]||'')+d.slice(1);
   return (d.length>=8&&d.length<=15)?d:'';
 }
-function waText(d){return 'السلام عليكم '+d.name+'، تذكير ودّي: المتبقي عليك '+fmt(d.owed)+' '+C().cn+'. شكراً لتعاملك معنا.'}
+function waText(d){if(d.fr)return 'هلا '+d.name+'، تذكير بسيط: المتبقي عليك من حساب الطلعة '+fmt(d.owed)+' '+C().cn+'. يعطيك العافية 🌹';return 'السلام عليكم '+d.name+'، تذكير ودّي: المتبقي عليك '+fmt(d.owed)+' '+C().cn+'. شكراً لتعاملك معنا.'}
 function recSection(){
   var rs=S.recurring||[];
   return '<section class="blk"><h2 class="sec disp">حركات متكررة</h2><p class="fine" style="margin-top:-4px">راتب، إيجار، اشتراك… بتنضاف لحالها كل شهر. لإضافة وحدة: سجّل حركة وفعّل "كرّر شهرياً".</p>'+
@@ -1838,7 +1849,7 @@ function splitEditHTML(){
   h+='<div class="inl" style="align-items:center;margin:8px 0"><span style="flex:1">إكرامية (اختياري)</span><input class="f" data-act="split-tip" inputmode="decimal" style="max-width:110px" value="'+esc(sp.tip)+'" placeholder="0" aria-label="إكرامية"></div>';
   h+='<div class="inl" style="align-items:center;margin:8px 0"><span style="flex:1">توزيع الضريبة والخدمة</span><select class="f" data-act="split-mode" style="max-width:170px" aria-label="طريقة التوزيع"><option value="prop"'+(sp.mode==='prop'?' selected':'')+'>بالنسبة لأصناف كل واحد</option><option value="eq"'+(sp.mode==='eq'?' selected':'')+'>بالتساوي</option></select></div>';
   h+='<div id="split-sum">'+splitSummaryHTML()+'</div>';
-  h+='<button class="btn block" data-act="split-share">شارك الحساب بواتساب</button><button class="btn ghost block" data-act="split-save-me">سجّل حصتي كمصروف</button><button class="btn ghost block" data-act="split-reset">فاتورة ثانية</button>';
+  h+='<button class="btn block" data-act="split-share">شارك الحساب بواتساب</button><button class="btn ghost block" data-act="split-save-me">سجّل حصتي كمصروف</button><button class="btn ghost block" data-act="split-paid-all">دفعت عن الكل: سجّل حصتي وديونهم علي</button><button class="btn ghost block" data-act="split-reset">فاتورة ثانية</button>';
   return h;
 }
 function splitFile(file){
@@ -2550,7 +2561,7 @@ document.addEventListener('click',function(e){
     if(isNaN(pv)||pv<=0){toast('اكتب مبلغ الدفعة');return}
     var d=S.debts.filter(function(x){return x.id===id})[0];if(!d)return;
     var paid=Math.min(pv,d.owed);d.owed-=paid;
-    S.tx.push({id:uid(),type:'inc',cat:'collect',amt:paid,note:'تسديد دين: '+d.name,date:TODAY});
+    if(!d.fr)S.tx.push({id:uid(),type:'inc',cat:'collect',amt:paid,note:'تسديد دين: '+d.name,date:TODAY});
     if(d.owed<=0.0005)S.debts=S.debts.filter(function(x){return x.id!==id});
     saveUser();render();toast('تم تسجيل الدفعة');return;
   }
@@ -2655,6 +2666,24 @@ document.addEventListener('click',function(e){
     var mine=c9.total[mi]/c9.f;if(!(mine>0)){toast('حصتك صفر. وزّع الأصناف أول.');return}
     ui.split=null;
     addTx([{type:'exp',cat:PCATS[S.persona].indexOf('food')>-1?'food':'other',amt:mine,note:(sp9.meta&&sp9.meta.merchant)||'فاتورة مشتركة',date:(sp9.meta&&sp9.meta.date)||TODAY}],'تم تسجيل حصتك: '+fmt(mine)+' '+C().cur);return;
+  }
+  if(a==='split-paid-all'){
+    var spa=ui.split;if(!spa)return;
+    var ca=splitCalc(spa),ma=spa.people.map(function(x){return !!x.me}).indexOf(true);if(ma<0)ma=0;
+    var others=[];spa.people.forEach(function(pp,i){if(i!==ma&&ca.total[i]>0)others.push({name:String(pp.name||'').trim()||'صديق',owed:ca.total[i]/ca.f})});
+    if(!others.length){toast('ما في حصص على غيرك. وزّع الأصناف أول.');return}
+    var mineA=ca.total[ma]/ca.f,tot=others.reduce(function(x,o){return x+o.owed},0);
+    if(!window.confirm('رح نسجّل حصتك '+fmt(mineA)+' '+C().cur+' كمصروف، ونسجّل على '+others.length+' أشخاص مجموع '+fmt(tot)+' '+C().cur+' كسلف لك. نكمل؟'))return;
+    others.forEach(function(o){var ex=S.debts.filter(function(d){return d.fr&&d.name===o.name})[0];if(ex)ex.owed+=o.owed;else S.debts.push({id:uid(),name:o.name,owed:o.owed,fr:true})});
+    ui.split=null;
+    if(mineA>0)S.tx.push({id:uid(),type:'exp',cat:PCATS[S.persona].indexOf('food')>-1?'food':'other',amt:mineA,note:(spa.meta&&spa.meta.merchant)||'فاتورة مشتركة',date:(spa.meta&&spa.meta.date&&/^\d{4}-\d{2}-\d{2}$/.test(spa.meta.date))?spa.meta.date:TODAY});
+    ui.sheet=null;ui.tab='extra';ui.tool=S.persona==='merchant'?'persona':'friends';saveUser();render();toast('سُجّلت حصتك وسلف '+others.length+' أشخاص');
+    return;
+  }
+  if(a==='debt-forgive'){
+    var fg=S.debts.filter(function(x){return x.id===id})[0];if(!fg)return;
+    S.debts=S.debts.filter(function(x){return x.id!==id});saveUser();render();
+    toast('تم شطب دين '+fg.name,function(){S.debts.push(fg);saveUser();render()});return;
   }
   if(a==='onb-hide'){S.onbHidden=true;saveUser();render();return}
   if(a==='fb-open'){ui.fbKind='idea';ui.sheet='fb';render();return}
