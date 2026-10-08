@@ -3,6 +3,7 @@
 // - /api/ask  : المدير المالي (نص)    — حد يومي لكل مستخدم + حد عام
 // - /api/scan : قراءة فاتورة من صورة  — حد يومي لكل مستخدم + حد عام
 // - /api/prices : أسعار الذهب والفضة العالمية + أسعار الصرف (تخزين مؤقت 30 دقيقة)
+// - /api/gold-history : تاريخ سعر الذهب اليومي (للرسم البياني)
 // - /api/bill : قراءة فاتورة لتقسيمها (أصناف + ضريبة + خدمة)
 // - /api/delete-account: حذف الحساب كاملاً (يحتاج SUPABASE_SERVICE_KEY كسر)
 // - /api/status: تشخيص (بدون أي قيم سرية)
@@ -697,6 +698,47 @@ async function handlePrices(request) {
   return new Response(body, { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
 }
 
+// ---------- تاريخ سعر الذهب (للرسم البياني) ----------
+const HIST_TTL = 6 * 60 * 60 * 1000;
+let histMem = null;
+
+async function fetchHistory() {
+  const r = await fetch('https://xaus.com/api/v1/history', { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
+  if (!r.ok) throw new Error('upstream ' + r.status);
+  const j = await r.json();
+  const pts = Array.isArray(j && j.points) ? j.points : [];
+  const clean = [];
+  for (const p of pts) {
+    const d = p && p.d, c = Number(p && p.c);
+    if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) && c > 200 && c < 100000) clean.push([d, Math.round(c * 100) / 100]);
+  }
+  clean.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  if (clean.length < 30) throw new Error('too few points');
+  // آخر 400 يوم يومياً، وما قبلها نقطة كل 7 أيام (لتخفيف الحجم)
+  const n = clean.length, from = Math.max(0, n - 400), out = [];
+  for (let i = 0; i < n; i++) if (i >= from || i % 7 === 0) out.push(clean[i]);
+  return { points: out, as_of: clean[n - 1][0] };
+}
+
+async function handleGoldHistory(request) {
+  if (request.method !== 'GET') return json({ error: 'method' }, 405);
+  const now = Date.now();
+  let data = null, stale = false;
+  if (histMem && now - histMem.ts < HIST_TTL) {
+    data = histMem.data;
+  } else {
+    try {
+      data = await fetchHistory();
+      histMem = { data, ts: now };
+    } catch (e) {
+      if (histMem) { data = histMem.data; stale = true; }
+      else return json({ error: 'history_unavailable' }, 503);
+    }
+  }
+  return new Response(JSON.stringify({ points: data.points, as_of: data.as_of, stale, fetched_at: new Date(histMem ? histMem.ts : now).toISOString() }),
+    { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
+}
+
 function status(env) {
   const k = env.SUPABASE_ANON_KEY || '';
   return json({
@@ -717,6 +759,7 @@ export default {
     if (url.pathname === '/api/scan') return handleScan(request, env);
     if (url.pathname === '/api/statement') return handleStatement(request, env);
     if (url.pathname === '/api/prices') return handlePrices(request);
+    if (url.pathname === '/api/gold-history') return handleGoldHistory(request);
     if (url.pathname === '/api/bill') return handleBill(request, env);
     if (url.pathname === '/api/delete-account') return handleDeleteAccount(request, env);
     if (url.pathname.startsWith('/api/')) return json({ error: 'not_found' }, 404);
