@@ -915,7 +915,7 @@ function viewHome(){
     '<span class="msw"><button data-act="month" data-m="'+(older||'')+'" '+(older?'':'disabled')+' aria-label="الشهر السابق">›</button><b aria-live="polite">'+monthName(ui.month)+'</b><button data-act="month" data-m="'+(newer||'')+'" '+(newer?'':'disabled')+' aria-label="الشهر التالي">‹</button></span></div>'+
     '<div class="big"><bdi dir="ltr" class="amt" data-count="'+s.rem+'">'+fmt(s.rem)+'</bdi><span class="cur">'+C().cur+'</span></div>'+
     '<div class="sub"><div><small>'+(p==='merchant'?'مبيعات':'دخل')+'</small><b>'+amt(s.inc)+'</b></div><div><small>مصاريف</small><b>'+amt(s.exp)+'</b></div></div></div></div>'+
-    quickActions()+onbCard()+'<div class="tiles">'+homeTiles(s,p,isCur)+'</div>'+budgetCard()+metalsCard()+
+    quickActions()+onbCard()+installCard()+'<div class="tiles">'+homeTiles(s,p,isCur)+'</div>'+budgetCard()+metalsCard()+
     '<section class="blk card"><div class="sec-h"><h2 class="sec disp">'+t('whereMoney')+'</h2><button class="link2" data-act="open-report">تقرير '+monthName(ui.month)+'</button></div>'+donutHTML(s)+'</section>'+
     '<section class="blk"><div class="sec-h"><h2 class="sec disp">آخر الحركات</h2><button class="link2" data-act="tx-open">بحث وعرض الكل</button></div>'+recent+moreBtn+'</section></main>';
 }
@@ -2163,6 +2163,19 @@ function onbCard(){
     '<div class="onb-bar">'+st.map(function(x){return '<i class="'+(x.ok?'done on':'')+'"></i>'}).join('')+'</div>'+
     '<div class="t"><b>'+nx.t+'</b><small>'+nx.d+'</small><button class="btn small" style="margin-top:8px" '+(nx.tab?'data-act="tool" data-t="persona"':'data-act="open-add"')+'>'+nx.btn+'</button></div></div>';
 }
+var deferredInstall=null;
+try{window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredInstall=e;try{if(S&&ui.tab==='home')render()}catch(x){}});window.addEventListener('appinstalled',function(){deferredInstall=null;try{localStorage.setItem('dn_inst_hide','1')}catch(x){}try{render()}catch(x){}})}catch(e){}
+function isStandalone(){try{return !!((window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone)}catch(e){return false}}
+function installHidden(){try{return localStorage.getItem('dn_inst_hide')==='1'}catch(e){return false}}
+function installCard(){
+  if(isStandalone()||installHidden()||!S.tx.length||ui.month!==MONTH)return '';
+  var ua=String(navigator.userAgent||''),ios=/iPad|iPhone|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1);
+  var body,btn='';
+  if(deferredInstall){body='ثبّته على شاشتك الرئيسية وافتحه مثل أي تطبيق، بسرعة وبدون متصفح.';btn='<button class="btn small" style="margin-top:8px" data-act="install-app">ثبّت التطبيق</button>'}
+  else if(ios){body='من متصفح Safari: اضغط زر المشاركة (المربع والسهم) ثم «إضافة إلى الشاشة الرئيسية».'}
+  else{body='من قائمة المتصفح (⋮) اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».'}
+  return '<div class="onb"><div style="display:flex;justify-content:space-between;align-items:center"><h3>خلّي دينارك على شاشتك</h3><button class="x" data-act="install-hide" aria-label="إخفاء">×</button></div><div class="t"><small>'+body+'</small>'+btn+'</div></div>';
+}
 function launchBanner(){
   if(S.hideBanner)return '';
   return '<div class="banner"><span class="fbadge">فترة الإطلاق</span><span style="flex:1">كل المميزات مجانية الآن</span><button class="x" data-act="hide-banner" aria-label="إخفاء">×</button></div>';
@@ -2390,6 +2403,8 @@ document.addEventListener('click',function(e){
   if(a==='scan-manual'){ui.scan=null;ui.sheet='add';ui.addType='exp';ui.editId=null;ui.multi=[];render();return}
   if(a==='ai-consent'){S.aiConsent=true;saveUser();render();return}
   if(a==='ai-decline'){S.aiConsent=false;saveUser();render();return}
+  if(a==='install-app'){var di=deferredInstall;if(di){di.prompt();Promise.resolve(di.userChoice).then(function(){deferredInstall=null;render()}).catch(function(){})}return}
+  if(a==='install-hide'){try{localStorage.setItem('dn_inst_hide','1')}catch(e){}render();return}
   if(a==='hide-banner'){S.hideBanner=true;saveUser();render();return}
   if(a==='paste-mode'){var pw=$('#pastewrap');if(pw){pw.style.display=pw.style.display==='none'?'':'none';var pi=$('#paste-in');if(pi&&pw.style.display==='')pi.focus()}return}
   if(a==='paste-go'){pasteGo();return}
