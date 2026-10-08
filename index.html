@@ -651,7 +651,16 @@ function cloudSignedIn(user){
     S=u;ui.pre={country:null,persona:null};ui.returning=false;ui.tab='home';ui.month=MONTH;ui.chat=[];ui.loading=false;
     if(!d)saveUser();
     render();
-  }).catch(function(){ui.loading=false;ui.loadFail=true;render()});
+  }).catch(function(){
+    var raw=ls(function(){return localStorage.getItem('dinarak:v3:cache:'+user.id)}),cu=null;
+    try{cu=raw?JSON.parse(raw):null}catch(e){}
+    if(cu&&typeof cu==='object'&&(cu.country||cu.persona)){
+      cu.email=user.email||cu.email||'';cu=cleanData(cu);if(!cu.ai)cu.ai={date:TODAY,used:0};
+      S=cu;ui.pre={country:null,persona:null};ui.returning=false;ui.tab='home';ui.month=MONTH;ui.chat=[];ui.loading=false;ui.offlineData=true;render();
+      return;
+    }
+    ui.loading=false;ui.loadFail=true;render();
+  });
 }
 
 function loadUser(email){var r=ls(function(){return localStorage.getItem(UKEY+email)});if(!r)return null;try{return JSON.parse(r)}catch(e){return null}}
@@ -918,7 +927,7 @@ function viewHome(){
     '<span class="msw"><button data-act="month" data-m="'+(older||'')+'" '+(older?'':'disabled')+' aria-label="الشهر السابق">›</button><b aria-live="polite">'+monthName(ui.month)+'</b><button data-act="month" data-m="'+(newer||'')+'" '+(newer?'':'disabled')+' aria-label="الشهر التالي">‹</button></span></div>'+
     '<div class="big"><bdi dir="ltr" class="amt" data-count="'+s.rem+'">'+fmt(s.rem)+'</bdi><span class="cur">'+C().cur+'</span></div>'+
     '<div class="sub"><div><small>'+(p==='merchant'?'مبيعات':'دخل')+'</small><b>'+amt(s.inc)+'</b></div><div><small>مصاريف</small><b>'+amt(s.exp)+'</b></div></div></div></div>'+
-    quickActions()+alertBanner()+onbCard()+'<div class="tiles">'+homeTiles(s,p,isCur)+'</div>'+budgetCard()+metalsCard()+installCard()+
+    offlineBanner()+quickActions()+alertBanner()+onbCard()+'<div class="tiles">'+homeTiles(s,p,isCur)+'</div>'+budgetCard()+metalsCard()+installCard()+
     '<section class="blk card"><div class="sec-h"><h2 class="sec disp">'+t('whereMoney')+'</h2><button class="link2" data-act="open-report">تقرير '+monthName(ui.month)+'</button></div>'+donutHTML(s)+'</section>'+
     '<section class="blk"><div class="sec-h"><h2 class="sec disp">آخر الحركات</h2><button class="link2" data-act="tx-open">بحث وعرض الكل</button></div>'+recent+moreBtn+'</section></main>';
 }
@@ -2335,6 +2344,10 @@ function installCard(){
   else{body='من قائمة المتصفح (⋮) اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».'}
   return '<div class="onb"><div style="display:flex;justify-content:space-between;align-items:center"><h3>خلّي دينارك على شاشتك</h3><button class="x" data-act="install-hide" aria-label="إخفاء">×</button></div><div class="t"><small>'+body+'</small>'+btn+'</div></div>';
 }
+function offlineBanner(){
+  var off=(typeof navigator!=='undefined'&&navigator.onLine===false)||ui.offlineData;if(!off)return '';
+  return '<div class="banner" style="margin-bottom:8px"><span class="fbadge">بدون إنترنت</span><span style="flex:1">'+(ui.offlineData?'هاي آخر نسخة محفوظة على جهازك. تعديلاتك بتنرفع لما يرجع النت.':'تقدر تسجّل وتتصفح. الحفظ بالسحابة والمسح والذكاء الاصطناعي بيرجعوا لما يرجع النت.')+'</span></div>';
+}
 function launchBanner(){
   if(S.hideBanner)return '';
   return '<div class="banner"><span class="fbadge">فترة الإطلاق</span><span style="flex:1">كل المميزات مجانية الآن</span><button class="x" data-act="hide-banner" aria-label="إخفاء">×</button></div>';
@@ -2990,6 +3003,7 @@ function ask(text,qkey){
   .then(function(){ui.busy=false;ui.ctl=null;render();var m=$('#msgs');if(m&&m.lastElementChild&&m.lastElementChild.scrollIntoView)m.lastElementChild.scrollIntoView({block:'center'})});
 }
 
+try{if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}}catch(e){}
 try{
   if(window.addEventListener){
     window.addEventListener('error',function(e){if(!e||!e.message||/^Script error/i.test(e.message))return;reportError('js',e.message+(e.lineno?' @'+e.lineno+':'+(e.colno||0):''),e.error&&e.error.stack)});
@@ -3009,7 +3023,7 @@ if(CLOUD){
     }
   });
   setTimeout(function(){if(ui.loading&&!cloud.uid){ui.loading=false;render()}},oauthReturn?15000:5000);
-  if(window.addEventListener)window.addEventListener('online',function(){if(cloud.dirty)pushCloud()});
+  if(window.addEventListener){window.addEventListener('online',function(){if(cloud.dirty)pushCloud();ui.offlineData=false;if(S&&ui.screen==='app'&&!ui.sheet)render()});window.addEventListener('offline',function(){if(S&&ui.screen==='app'&&!ui.sheet)render()})}
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'&&cloud.dirty)pushCloud()});
 }else{
   var em=ls(function(){return localStorage.getItem(SKEY)});
