@@ -156,6 +156,7 @@ nav.nav .add svg{stroke:var(--accent-ink);width:26px;height:26px}
 .qchip{border:1.5px solid var(--accent);background:transparent;color:var(--ink);border-radius:999px;padding:7px 14px;font-size:14.5px}
 .qchip:disabled{opacity:.4;border-color:var(--line);cursor:not-allowed}
 .adv-top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}.adv-hello{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px;margin:6px 0 12px}.adv-big .qchip{flex:1 1 45%;text-align:center;padding:11px 10px;border-radius:14px}.adv-row{flex-wrap:nowrap;overflow-x:auto;margin:0 0 10px;padding-bottom:4px}.adv-row .qchip{white-space:nowrap;flex:0 0 auto}.adv-in{margin-bottom:6px}.adv-note{margin-top:8px;opacity:.8}
+.pinv{text-align:center;padding-top:12vh}.pin-sub{min-height:22px}.pin-dots{display:flex;justify-content:center;gap:14px;margin:18px 0 22px}.pin-dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--accent);display:block}.pin-dots i.on{background:var(--accent)}.pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:14px;justify-content:center;direction:ltr;margin-bottom:18px}.pin-pad button{height:72px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-size:26px;font-family:inherit}.pin-pad button:active{background:var(--accent);color:var(--accent-ink)}
 .qchip.on{background:var(--accent);color:var(--accent-ink)}
 .pill{display:inline-block;background:var(--accent-soft);border-radius:999px;padding:3px 12px;font-size:13.5px}
 
@@ -549,7 +550,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,catType:'exp',catColor:null,billEdit:null,txq:'',txKind:'all',txCat:null,txAll:false,txLimit:80,txMonth0:null,txBack:false,scan:null,scanPrev:null,locked:false,lockY:0,tool:null,hist:null,histTs:0,histBusy:false,histErr:false,chartRange:'6m',chartCur:null,chartModel:null,metalEdit:null,metalWarnKey:null,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,catType:'exp',catColor:null,billEdit:null,txq:'',txKind:'all',txCat:null,txAll:false,txLimit:80,txMonth0:null,txBack:false,scan:null,scanPrev:null,locked:false,lockY:0,tool:null,hist:null,histTs:0,histBusy:false,histErr:false,chartRange:'6m',chartCur:null,chartModel:null,metalEdit:null,metalWarnKey:null,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null,pinLocked:undefined,pinBuf:'',pinMsg:'',pinFail:0,pinSetup:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -1025,6 +1026,7 @@ function viewAccount(){
   return '<main class="shell">'+topbar()+
     '<div class="prof"><span class="avatar">'+esc(ini)+'</span><div class="t" style="flex:1;min-width:0"><b>'+esc(nm||'مستخدم دينارك')+'</b><br><small class="muted">'+(CLOUD?esc(S.email||'حساب Google'):providerLabel())+'</small></div><button class="btn ghost small" data-act="logout">خروج</button></div>'+
     '<details class="acc" open><summary>الدولة والدفاتر</summary><div class="in"><p class="fine" style="margin-top:0">الدولة: '+C().n+' · '+C().cn+'</p><div class="chips" style="margin-bottom:10px">'+Object.keys(COUNTRIES).map(function(k){return '<button class="qchip '+(S.country===k?'on':'')+'" data-act="pick-country" data-c="'+k+'" data-stay="1">'+COUNTRIES[k].n+'</button>'}).join('')+'</div>'+ledgers+'</div></details>'+
+    '<details class="acc"><summary>القفل والأمان</summary><div class="in"><p class="fine" style="margin-top:0">رمز من 4 أرقام بيحمي التطبيق على هذا الجهاز لو حدا أخذ موبايلك. هو مجرد قفل شاشة، ومش بديل عن حماية جهازك.</p>'+(hasPin()?'<div class="chips"><button class="btn small" data-act="pin-now">اقفل الآن</button><button class="btn ghost small" data-act="pin-change">تغيير الرمز</button><button class="btn ghost small" data-act="pin-off">إيقاف القفل</button></div>':'<button class="btn small" data-act="pin-on">فعّل القفل برمز</button>')+'</div></details>'+
     '<details class="acc"><summary>بياناتي</summary><div class="in"><p class="fine" style="margin-top:0">نسختك بإيدك. نزّل حركات دفترك الحالي ('+pLabel(S.persona)+') بأي وقت.</p><div class="chips"><button class="btn ghost small" data-act="export-csv">تصدير الحركات (Excel / CSV)</button></div>'+
     '<h3 class="sub" style="margin-top:16px">منطقة الخطر</h3><button class="btn danger block" data-act="del-account" '+(ui.accDeleting?'disabled':'')+'>'+(ui.accDeleting?'جاري الحذف…':ui.accArm?'تأكيد: احذف حسابي وكل بياناتي نهائياً':'احذف حسابي وكل بياناتي')+'</button>'+(ui.accArm&&!ui.accDeleting?'<p class="hint err" style="margin-top:8px">هالإجراء نهائي: بيمسح حسابك وكل حركاتك وما بنقدر نرجعها. نزّل نسخة من بياناتك أول إذا بدك.</p>':'')+'<p class="fine" style="margin-top:8px"><a href="delete-account.html" target="_blank" rel="noopener">كيف يتم حذف الحساب</a></p></div></details>'+
     (CLOUD?'<details class="acc"><summary>ملاحظاتك تهمنا</summary><div class="in"><p class="fine" style="margin-top:0">شو علق معك؟ شو ناقصك؟ بنقرأ كل ملاحظة.</p><button class="btn block" data-act="fb-open">أرسل ملاحظة</button></div></details>':'')+
@@ -1106,6 +1108,59 @@ function navHTML(){
     '<button class="add" data-act="open-add" aria-label="سجّل حركة">'+icon('plus')+'</button>'+b('advisor','advisor','المدير المالي')+b('account','account','حسابي')+'</nav>';
 }
 
+/* ---------- PIN lock (device-only privacy screen) ---------- */
+var PINK='dn_pin',PINU='dn_pin_until';
+function pinRec(){try{var r=JSON.parse(localStorage.getItem(PINK)||'null');return r&&r.s&&r.h?r:null}catch(e){return null}}
+function hasPin(){return !!pinRec()}
+function pinHash(pin,salt){
+  var str=salt+':'+pin;
+  try{if(window.crypto&&crypto.subtle&&window.TextEncoder){return crypto.subtle.digest('SHA-256',new TextEncoder().encode(str)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ('0'+x.toString(16)).slice(-2)}).join('')})}}catch(e){}
+  var h1=5381,h2=52711;for(var i=0;i<str.length;i++){var c=str.charCodeAt(i);h1=((h1<<5)+h1)^c;h2=((h2<<5)+h2)^c}
+  return Promise.resolve('f'+(h1>>>0).toString(16)+(h2>>>0).toString(16));
+}
+function pinSave(pin){var salt=Math.random().toString(36).slice(2)+Date.now().toString(36);return pinHash(pin,salt).then(function(h){try{localStorage.setItem(PINK,JSON.stringify({s:salt,h:h}))}catch(e){}})}
+function pinCheck(pin){var r=pinRec();if(!r)return Promise.resolve(true);return pinHash(pin,r.s).then(function(h){return h===r.h})}
+function pinWait(){var u=0;try{u=+localStorage.getItem(PINU)||0}catch(e){}return Math.max(0,Math.ceil((u-Date.now())/1000))}
+function lockNow(){if(!hasPin()||!S||!S.persona)return;ui.pinLocked=true;ui.pinBuf='';ui.pinMsg='';ui.pinFail=0;ui.sheet=null;ui.pinSetup=null}
+function viewPin(){
+  var su=ui.pinSetup,title,sub;
+  if(su){title={new:'اختر رمزاً من 4 أرقام',confirm:'أعد كتابة الرمز للتأكيد','verify-off':'اكتب رمزك الحالي لإيقاف القفل','verify-change':'اكتب رمزك الحالي'}[su.mode];sub=ui.pinMsg||(su.mode==='new'?'بنطلبه كل ما تفتح التطبيق.':'')}
+  else{title='دينارك مقفل';var w=pinWait();sub=w>0?'محاولات كثيرة. جرّب بعد '+w+' ثانية.':(ui.pinMsg||'اكتب رمزك')}
+  var dots='';for(var i=0;i<4;i++)dots+='<i class="'+(i<ui.pinBuf.length?'on':'')+'"></i>';
+  var keys='';[1,2,3,4,5,6,7,8,9].forEach(function(n){keys+='<button data-act="pin-key" data-k="'+n+'">'+n+'</button>'});
+  keys+='<span></span><button data-act="pin-key" data-k="0">0</button><button data-act="pin-key" data-k="del" aria-label="مسح">⌫</button>';
+  return '<main class="shell pinv"><h2 class="disp">'+title+'</h2><p class="fine pin-sub">'+esc(sub)+'</p><div class="pin-dots">'+dots+'</div><div class="pin-pad">'+keys+'</div>'+
+    (su?'<button class="link" data-act="pin-cancel">إلغاء</button>':'<button class="link" data-act="pin-forgot">نسيت الرمز؟</button>')+'</main>';
+}
+function pinDone(){
+  var pin=ui.pinBuf,su=ui.pinSetup;ui.pinBuf='';
+  if(su){
+    if(su.mode==='new'){ui.pinSetup={mode:'confirm',first:pin};ui.pinMsg='';render();return}
+    if(su.mode==='confirm'){
+      if(pin!==su.first){ui.pinSetup={mode:'new'};ui.pinMsg='الرمزان مختلفان. جرّب من جديد.';render();return}
+      pinSave(pin).then(function(){ui.pinSetup=null;ui.pinMsg='';toast('تم تفعيل القفل');render()});return;
+    }
+    pinCheck(pin).then(function(ok){
+      if(!ok){ui.pinMsg='الرمز غلط.';render();return}
+      ui.pinMsg='';
+      if(su.mode==='verify-off'){try{localStorage.removeItem(PINK)}catch(e){}ui.pinSetup=null;toast('تم إيقاف القفل')}
+      else ui.pinSetup={mode:'new'};
+      render();
+    });return;
+  }
+  if(pinWait()>0){render();return}
+  pinCheck(pin).then(function(ok){
+    if(ok){ui.pinLocked=false;ui.pinFail=0;ui.pinMsg='';try{localStorage.removeItem(PINU)}catch(e){}render();return}
+    ui.pinFail=(ui.pinFail||0)+1;ui.pinMsg='الرمز غلط.';
+    if(ui.pinFail>=5){ui.pinFail=0;try{localStorage.setItem(PINU,String(Date.now()+30000))}catch(e){}ui.pinMsg='';setTimeout(function(){if(ui.pinLocked)render()},30500)}
+    render();
+  });
+}
+var pinHiddenAt=0;
+try{document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden'){pinHiddenAt=Date.now()}
+  else if(pinHiddenAt&&Date.now()-pinHiddenAt>30000&&hasPin()&&S&&S.persona&&!ui.pinLocked&&!ui.pinSetup){lockNow();render()}
+})}catch(e){}
 function route(){
   if(ui.loading||ui.loadFail){ui.screen='loading';return}
   if(!S)ui.screen='auth';
@@ -1128,6 +1183,8 @@ function render(){
   if(ui.screen==='auth'){app.innerHTML=E(viewAuth());return}
   if(ui.screen==='country'){app.innerHTML=E(viewCountry());return}
   if(ui.screen==='persona'){app.innerHTML=E(viewPersona());return}
+  if(ui.screen==='app'&&ui.pinLocked===undefined&&hasPin()){ui.pinLocked=true}
+  if(ui.screen==='app'&&(ui.pinLocked||ui.pinSetup)){app.innerHTML=viewPin();return}
   var v=ui.tab==='home'?viewHome():ui.tab==='extra'?viewExtra():ui.tab==='advisor'?viewAdvisor():viewAccount();
   app.innerHTML=E(v)+navHTML()+(ui.sheet==='add'?sheetAdd():ui.sheet==='report'?sheetReport():ui.sheet==='stmt'?sheetStmt():ui.sheet==='fb'?sheetFb():ui.sheet==='split'?sheetSplit():ui.sheet==='metals'?sheetMetals():ui.sheet==='scan'?sheetScan():ui.sheet==='tx'?sheetTx():'');
   if(anim)countUp();
@@ -2405,6 +2462,24 @@ document.addEventListener('click',function(e){
   if(a==='ai-decline'){S.aiConsent=false;saveUser();render();return}
   if(a==='install-app'){var di=deferredInstall;if(di){di.prompt();Promise.resolve(di.userChoice).then(function(){deferredInstall=null;render()}).catch(function(){})}return}
   if(a==='install-hide'){try{localStorage.setItem('dn_inst_hide','1')}catch(e){}render();return}
+  if(a==='pin-key'){
+    var k=el.getAttribute('data-k');
+    if(k==='del'){ui.pinBuf=ui.pinBuf.slice(0,-1);render();return}
+    if(ui.pinBuf.length>=4||(!ui.pinSetup&&pinWait()>0))return;
+    ui.pinBuf+=k;render();if(ui.pinBuf.length===4)setTimeout(pinDone,120);return;
+  }
+  if(a==='pin-cancel'){ui.pinSetup=null;ui.pinBuf='';ui.pinMsg='';render();return}
+  if(a==='pin-on'){ui.pinSetup={mode:'new'};ui.pinBuf='';ui.pinMsg='';render();return}
+  if(a==='pin-off'){ui.pinSetup={mode:'verify-off'};ui.pinBuf='';ui.pinMsg='';render();return}
+  if(a==='pin-change'){ui.pinSetup={mode:'verify-change'};ui.pinBuf='';ui.pinMsg='';render();return}
+  if(a==='pin-now'){lockNow();render();return}
+  if(a==='pin-forgot'){
+    if(!confirm('لو نسيت الرمز لازم تسجّل خروج وتدخل من جديد. بياناتك محفوظة بحسابك ولا تضيع. نكمل؟'))return;
+    try{localStorage.removeItem(PINK);localStorage.removeItem(PINU)}catch(e){}
+    ui.pinLocked=false;ui.pinBuf='';ui.pinMsg='';
+    if(CLOUD){pushCloud().then(function(){return sb.auth.signOut()}).catch(function(){render()});return}
+    setSession(null);S=null;ui.returning=true;ui.pre={country:null,persona:null};ui.sheet=null;ui.chat=[];render();return;
+  }
   if(a==='hide-banner'){S.hideBanner=true;saveUser();render();return}
   if(a==='paste-mode'){var pw=$('#pastewrap');if(pw){pw.style.display=pw.style.display==='none'?'':'none';var pi=$('#paste-in');if(pi&&pw.style.display==='')pi.focus()}return}
   if(a==='paste-go'){pasteGo();return}
