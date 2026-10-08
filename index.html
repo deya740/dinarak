@@ -1327,7 +1327,7 @@ var KW=[['transport',['بنزين','تكسي','باص','مواصلات','اوب�
  ['bills',['كهرباء','مي','ماء','نت','انترنت','فاتوره','زين','اورنج','امنيه','باقه','اشتراك','اتصالات','فودافون']],
  ['study',['كتاب','كتب','جامعه','قرطاسيه','دراسه','رسوم','طباعه']],
  ['fun',['سينما','العاب','ترفيه','نتفلكس','رحله','طلعه']],
- ['stock',['بضاعه','مورد','جمله']],['rent',['ايجار']],['staff',['يوميه','عامل','عمال']],['personal',['شخصي']]];
+ ['stock',['بضاعه','مورد','جمله']],['rent',['ايجار']],['staff',['يوميه','عامل','عمال']],['personal',['شخصي','شامبو','صابون','معجون','عطر','مناديل','مكياج','حلاقه']]];
 var INC=['قبضت','استلمت','دخل','راتب','معاش','مرتب','بعت','مبيعات','وصلني','ربحت','جاني','نزل','مكافاه','منحه'];
 var INKW=[['salary',['راتب','معاش','مرتب']],['sales',['بعت','مبيعات']],['bonus',['مكافاه','بونص','حافز']],['parttime',['شغل','دوام']],['allowance',['مصروفي','اهلي','ابوي']],['scholarship',['منحه']]];
 function parseText(txt){
@@ -1942,7 +1942,7 @@ function sheetSplit(){
     h='<p class="fine" style="margin:0 0 8px">صوّر الفاتورة، وحدّد مين أكل شو، وبيطلع كم على كل واحد مع حصته من الضريبة والخدمة. الحساب بيتم بالكود وإنت بتراجع كل رقم.</p>'+
       (CLOUD&&!ui.billOff?'<div class="choice"><button class="ch-i" data-act="split-cam"><span class="tl-c">'+icon('camera')+'</span><b>صوّر الآن</b><small>افتح الكاميرا</small></button><button class="ch-i" data-act="split-pick"><span class="tl-c">'+icon('image')+'</span><b>اختر من الصور</b><small>صورة محفوظة بجهازك</small></button></div><input type="file" id="split-cam" accept="image/*" capture="environment" style="display:none"><input type="file" id="split-in" accept="image/*" style="display:none">':'')+
       '<button class="btn ghost block" data-act="split-manual">أدخل الأصناف يدوياً</button>'+
-      (sp.msg?'<div class="hint err" aria-live="polite" style="margin-top:10px">'+esc(sp.msg)+'</div>':'');
+      (sp.msg?'<div class="hint err" aria-live="polite" style="margin-top:10px">'+esc(sp.msg)+'</div>':'')+(sp.msg&&ui.forceFile&&ui.forceFile.kind==='split'?'<button class="btn ghost small" data-act="force-go" style="margin-top:8px">كمّل على أي حال</button>':'');
   }
   return '<div class="scrim" data-act="split-close"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="تقسيم فاتورة"><div class="grab"></div><div class="sh-h"><h2 class="disp">تقسيم فاتورة '+fb()+'</h2><button class="sh-x" data-act="split-close" aria-label="إغلاق">×</button></div>'+h+'</section>';
 }
@@ -1969,6 +1969,7 @@ function splitEditHTML(){
   return h;
 }
 function splitFile(file){
+  ui.forceFile=null;
   if(!file||ui.splitBusy)return;
   ui.splitBusy=true;ui.split={phase:'loading'};render();
   var cats=PCATS[S.persona].map(function(k){return {k:k,n:CATS[k].n}});
@@ -1996,6 +1997,7 @@ function splitFile(file){
     ui.split={phase:'start',msg:m};
     if(o.status>=500&&!(j.error==='ai_not_configured'))reportError('api','bill '+(j.error||'')+' '+o.status);
   }).catch(function(e){
+    if(e&&e.code==='quality'){ui.forceFile={kind:'split',file:file};ui.split={phase:'start',msg:qualityMsg(e.why)};return}
     ui.split={phase:'start',msg:e&&e.code==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':e&&e.code==='big'?'الصورة كبيرة كتير.':e&&e.code==='read'?'ما قدرت أفتح الصورة.':'تعذّر الاتصال. جرّب مرة ثانية.'};
   }).then(function(){ui.splitBusy=false;render()});
 }
@@ -2265,6 +2267,23 @@ function pickDate(){
   return v<mn?TODAY:v;
 }
 function scanMsg(t,err){var b=$('#hint');if(b){b.textContent=t;b.className='hint'+(err?' err':'')}}
+function imgQuality(img){
+  try{
+    var W=480,sc=W/Math.max(1,img.width),H=Math.max(8,Math.round(img.height*sc)),cv=document.createElement('canvas');cv.width=W;cv.height=H;
+    var x=cv.getContext('2d');x.drawImage(img,0,0,W,H);var d=x.getImageData(0,0,W,H).data,g=new Float32Array(W*H),s=0,i;
+    for(i=0;i<W*H;i++){g[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];s+=g[i]}
+    var m=s/(W*H),v=0;for(i=0;i<W*H;i++){v+=(g[i]-m)*(g[i]-m)}var sd=Math.sqrt(v/(W*H));
+    var ls=0,l2=0,n=0;for(var y=1;y<H-1;y++)for(var xx=1;xx<W-1;xx++){var p=y*W+xx,l=4*g[p]-g[p-1]-g[p+1]-g[p-W]-g[p+W];ls+=l;l2+=l*l;n++}
+    var lm=ls/n,lap=l2/n-lm*lm;
+    if(m<55)return 'dark';
+    if(sd<14)return 'flat';
+    if(lap<60)return 'blur';
+    return null;
+  }catch(e){return null}
+}
+function qualityMsg(why){
+  return why==='dark'?'الصورة غامقة وما بينقرأ منها شي. صوّر الفاتورة بإضاءة أحسن وعيدها.':why==='flat'?'الصورة باهتة أو فيها لمعة وانعكاس. صوّر الفاتورة على سطح مسطّح وبدون لمعة وعيدها.':'الفاتورة مش واضحة (الصورة مهزوزة أو مش مضبوطة). ثبّت الموبايل، قرّب، وعيد التصوير.';
+}
 function prepareImage(file){
   return new Promise(function(resolve,reject){
     var fr=new FileReader();
@@ -2274,6 +2293,8 @@ function prepareImage(file){
       img.onerror=function(){reject({code:'read'})};
       img.onload=function(){
         try{
+          if(!ui.imgForce){var qz=imgQuality(img);if(qz){ui.imgForce=false;return reject({code:'quality',why:qz})}}
+          ui.imgForce=false;
           var best=null,tries=[[1280,0.72],[1024,0.6],[800,0.5]];
           for(var i=0;i<tries.length;i++){
             var sc=Math.min(1,tries[i][0]/Math.max(img.width,img.height)),w=Math.max(1,Math.round(img.width*sc)),h=Math.max(1,Math.round(img.height*sc));
@@ -2309,9 +2330,12 @@ function sheetScan(){
     h='<div class="lockbox"><h3>قبل ما تصوّر</h3><p class="fine" style="margin:0 0 8px">لما تصوّر فاتورة، بنرسل الصورة لـ Google (نموذج Gemini) عشان يقرأ المبلغ واسم المتجر. الفاتورة ممكن تحتوي معلومات شخصية (اسم، أجزاء من رقم بطاقة)، فصوّر الفاتورة فقط. ما بنحفظ الصورة عندنا. بالنسخة المجانية عند Google ممكن تستخدم الطلبات لتحسين منتجاتها. التفاصيل بـ<a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p><button class="btn block" data-act="scan-consent">موافق، كمّل</button><button class="btn ghost block" data-act="scan-decline">لا، شكراً</button></div>';
   }else if(sc.phase==='loading'){
     h=(ui.scanPrev?'<img class="prev" src="'+ui.scanPrev+'" alt="الفاتورة">':'')+'<div class="spin" role="status" aria-label="جاري القراءة"></div><p class="muted" style="text-align:center;margin:0">جاري قراءة الفاتورة… ممكن ياخد كم ثانية.</p>';
+  }else if(sc.phase==='items'){
+    h=scanItemsHTML();
   }else{
     h=(sc.msg?'<div class="hint err" aria-live="polite" style="margin:0 0 8px">'+esc(sc.msg)+'</div>':'')+
-      (ui.scanOff?'':'<p class="fine" style="margin:0 0 4px">اختار كيف بدك تجيب الفاتورة. بعد ما أقرأها بتنفتح نافذة التسجيل وفيها البيانات جاهزة لتراجعها.</p>'+
+      (sc.msg&&ui.forceFile&&ui.forceFile.kind==='scan'?'<button class="btn ghost small" data-act="force-go" style="margin:0 0 8px">كمّل على أي حال</button>':'')+
+      (ui.scanOff?'':'<div class="chips" style="margin:0 0 8px"><button class="qchip'+(ui.scanMode!=='total'?' on':'')+'" data-act="scn-mode" data-m="items">فصّل كل صنف</button><button class="qchip'+(ui.scanMode==='total'?' on':'')+'" data-act="scn-mode" data-m="total">المجموع فقط</button></div><p class="fine" style="margin:0 0 4px">'+(ui.scanMode==='total'?'بنقرأ مجموع الفاتورة والمتجر، وبتنفتح نافذة التسجيل جاهزة.':'بنقرأ كل صنف بالفاتورة، وبتختار تصنيف كل واحد وبتسجّلهم دفعة وحدة، مثل كشف الحساب.')+'</p>'+
       '<div class="choice"><button class="ch-i" data-act="scan-cam"><span class="tl-c">'+icon('camera')+'</span><b>صوّر الآن</b><small>افتح الكاميرا</small></button><button class="ch-i" data-act="scan-pick"><span class="tl-c">'+icon('image')+'</span><b>اختر من الصور</b><small>صورة محفوظة بجهازك</small></button></div>'+
       '<input type="file" id="scan-cam" accept="image/*" capture="environment" style="display:none"><input type="file" id="scan-pick" accept="image/*" style="display:none">'+
       '<p class="fine" style="margin:6px 0">نصيحة: صوّر الفاتورة كاملة وقريبة وبإضاءة كويسة.</p>')+
@@ -2319,7 +2343,72 @@ function sheetScan(){
   }
   return '<div class="scrim" data-act="scan-close"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="صوّر فاتورة"><div class="grab"></div><div class="sh-h"><h2 class="disp">صوّر فاتورة '+fb()+'</h2><button class="sh-x" data-act="scan-close" aria-label="إغلاق">×</button></div>'+h+'</section>';
 }
+function scnDefaultCat(){var l=PCATS[S.persona],o=['groceries','stock','food','other'];for(var i=0;i<o.length;i++)if(l.indexOf(o[i])>-1)return o[i];return l[0]}
+function scnGuess(name,def){
+  var n=norm(name);
+  for(var i=0;i<KW.length;i++){var k=KW[i][0];if(PCATS[S.persona].indexOf(k)<0)continue;for(var j=0;j<KW[i][1].length;j++){if(n.indexOf(KW[i][1][j])>-1)return k}}
+  return def;
+}
+function scanItemsHTML(){
+  var sc=ui.scan,cp=PCATS[S.persona],def=sc.def,h='';
+  var bulk=cp.map(function(k){return '<option value="'+k+'"'+(k===def?' selected':'')+'>'+CATS[k].n+'</option>'}).join('');
+  h+='<p class="fine" style="margin:0 0 6px">'+esc(sc.merchant||'فاتورة')+(sc.date?' · '+esc(sc.date):'')+(sc.total!==null&&sc.total!==undefined?' · إجمالي الفاتورة '+fmt(sc.total)+' '+C().cur:'')+'</p>';
+  h+='<div class="inl" style="align-items:center;margin:6px 0"><span style="flex:1">كل الأصناف تصنيف:</span><select class="f" data-act="scn-bulk" style="max-width:170px" aria-label="تصنيف الكل">'+bulk+'</select></div>';
+  h+='<div class="chips" style="margin:6px 0"><button class="btn ghost small" data-act="scn-all" data-v="1">تحديد الكل</button><button class="btn ghost small" data-act="scn-all" data-v="0">إلغاء الكل</button></div>';
+  h+='<div>'+sc.rows.map(function(r,i){
+    var opts=cp.map(function(k){return '<option value="'+k+'"'+(k===r.cat?' selected':'')+'>'+CATS[k].n+'</option>'}).join('');
+    return '<div class="srow"><input type="checkbox" class="stmt-chk" data-act="scn-toggle" data-i="'+i+'" '+(r.sel?'checked':'')+' aria-label="تحديد"><div class="sd"><b>'+esc(r.name)+'</b><select class="f" data-act="scn-cat" data-i="'+i+'" style="margin-top:4px;padding:6px 8px;font-size:14px" aria-label="التصنيف">'+opts+'</select></div><input class="f" data-act="scn-amt" data-i="'+i+'" inputmode="decimal" value="'+fmt(r.amt)+'" style="max-width:96px;text-align:center" aria-label="السعر"></div>';
+  }).join('')+'</div><div id="scn-sum"></div>';
+  h+='<button class="btn block" id="scn-save-btn" data-act="scn-save">سجّل المحدد</button><button class="btn ghost block" data-act="scn-redo">صوّر فاتورة ثانية</button>';
+  return h;
+}
+function scnSum(){
+  var sc=ui.scan;if(!sc||sc.phase!=='items')return;
+  var sel=sc.rows.filter(function(r){return r.sel}),tot=sel.reduce(function(a,r){return a+r.amt},0),el=$('#scn-sum'),b=$('#scn-save-btn');
+  var h='<p class="fine" style="margin:8px 0 4px">المحدد: '+sel.length+' من '+sc.rows.length+' · '+fmt(tot)+' '+C().cur+'</p>';
+  if(sc.total!==null&&sc.total!==undefined){var all=sc.rows.reduce(function(a,r){return a+r.amt},0),diff=Math.abs(all-sc.total);h+=diff<=Math.pow(10,-C().dec)*1.5?'<div class="chk ok">مجموع الأصناف مطابق لإجمالي الفاتورة.</div>':'<div class="chk warn">مجموع الأصناف '+fmt(all)+' يختلف عن إجمالي الفاتورة '+fmt(sc.total)+' (فرق '+fmt(diff)+'). ممكن في ضريبة أو خصم أو صنف ناقص، راجع الأسعار.</div>'}
+  if(sc.total!==null&&sc.total!==undefined&&sc.total>0){var all2=sc.rows.reduce(function(a,r){return a+r.amt},0);if(Math.abs(all2-sc.total)/sc.total>0.1)h+='<div class="chk warn"><b>القراءة مش مضمونة.</b> يمكن الفاتورة مش واضحة. الأفضل تعيد تصويرها بوضوح، أو راجع كل سعر. <button class="btn ghost small" data-act="scn-redo" style="margin-top:6px">صوّرها من جديد</button></div>'}
+  if(sc.note)h+='<div class="chk">'+esc(sc.note)+'</div>';
+  if(el)el.innerHTML=h;if(b){b.disabled=!sel.length;b.textContent=sel.length?'سجّل '+sel.length+' حركة':'ما حددت شي'}
+}
+function scanItemsFile(file){
+  ui.scanning=true;
+  try{ui.scanPrev=URL.createObjectURL(file)}catch(e){ui.scanPrev=null}
+  ui.scan={phase:'loading'};render();
+  var failMsg=null;
+  prepareImage(file).then(function(b64){
+    return Promise.resolve(sb.auth.getSession()).then(function(r){
+      var ss=r&&r.data&&r.data.session;if(!ss)throw {code:'auth'};
+      return fetch('/api/bill',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+ss.access_token},body:JSON.stringify({image:b64,mime:'image/jpeg',currency:C().cn})});
+    });
+  }).then(function(resp){return resp.json().catch(function(){return {}}).then(function(j){return {status:resp.status,j:j||{}}})}).then(function(o){
+    var j=o.j;if(ui.sheet!=='scan')return;
+    if(o.status===200&&Array.isArray(j.items)&&j.items.length){
+      var def=scnDefaultCat(),dt=/^\d{4}-\d{2}-\d{2}$/.test(String(j.date||''))?j.date:TODAY;
+      var rows=j.items.filter(function(it){return it&&typeof it.total==='number'&&it.total>0}).map(function(it){var nm=(it.qty>1?it.qty+'× ':'')+String(it.name||'صنف').slice(0,60);return {name:nm,amt:it.total,cat:scnGuess(it.name,def),sel:true,date:dt}});
+      var ex=(j.extras||[]).filter(function(e){return e&&typeof e.amount==='number'&&e.amount>0});
+      var note='';
+      ex.forEach(function(e){if(e.kind==='discount')note+='خصم '+fmt(e.amount)+' ('+(e.label||'')+') ما انحسب. عدّل الأسعار لو بدك. ';else rows.push({name:String(e.label||'ضريبة وخدمة').slice(0,60),amt:e.amount,cat:'other',sel:true,date:dt})});
+      if(!rows.length)throw {code:'empty'};
+      ui.scan={phase:'items',rows:rows,merchant:j.merchant||'',date:dt,total:j.check&&typeof j.check.total==='number'?j.check.total:null,def:def,note:note.trim()};return;
+    }
+    if(o.status===422||o.status===200)failMsg='ما قدرت أقرأ الأصناف. جرّب صورة أوضح (الفاتورة كاملة وبدون ظل) أو اختر "المجموع فقط".';
+    else if(o.status===429)failMsg=j.reason==='global'?'قراءة الفواتير مشغولة اليوم. جرّب بكرة، أو اختر "المجموع فقط".':'خلص حدك اليومي لقراءة الأصناف (5). بيتجدد بكرة، أو اختر "المجموع فقط".';
+    else if(o.status===503&&j.error==='ai_not_configured'){ui.billOff=true;failMsg='قراءة الأصناف غير مفعّلة حالياً. اختر "المجموع فقط".'}
+    else if(o.status===401)failMsg='انتهت جلستك. سجّل دخولك من جديد.';
+    else failMsg='الخدمة مشغولة لحظة. جرّب بعد دقيقة، أو اختر "المجموع فقط".';
+    if(o.status>=500&&!(j.error==='ai_not_configured'))reportError('api','bill-scan '+(j.error||'')+' '+o.status);
+  }).catch(function(e){
+    if(e&&e.code==='quality'){ui.forceFile={kind:'scan',file:file};failMsg=qualityMsg(e.why);return}
+    failMsg=e&&e.code==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':e&&e.code==='big'?'الصورة كبيرة كتير.':e&&e.code==='read'?'ما قدرت أفتح الصورة.':e&&e.code==='empty'?'ما لقيت أصناف واضحة بالفاتورة. جرّب صورة أوضح أو اختر "المجموع فقط".':'تعذّر الاتصال. جرّب مرة ثانية.';
+  }).then(function(){
+    ui.scanning=false;try{if(ui.scanPrev)URL.revokeObjectURL(ui.scanPrev)}catch(e){}ui.scanPrev=null;
+    if(ui.sheet==='scan'){if(failMsg)ui.scan={phase:'choose',msg:failMsg};render();if(!failMsg)scnSum()}
+  });
+}
 function scanFile(file){
+  ui.forceFile=null;
+  if(file&&!ui.scanning&&ui.scanMode!=='total'&&!ui.billOff){scanItemsFile(file);return}
   if(!file||ui.scanning)return;
   ui.scanning=true;
   try{ui.scanPrev=URL.createObjectURL(file)}catch(e){ui.scanPrev=null}
@@ -2346,6 +2435,7 @@ function scanFile(file){
     else if(o.status===503||o.status===502)failMsg='الخدمة مشغولة لحظة. جرّب بعد دقيقة.';
     else{failMsg='صار خطأ. جرّب مرة ثانية.';if(o.status>=500)reportError('api','scan '+(j.error||'')+' '+o.status)}
   }).catch(function(e){
+    if(e&&e.code==='quality'){ui.forceFile={kind:'scan',file:file};failMsg=qualityMsg(e.why);return}
     failMsg=e&&e.code==='big'?'الصورة كبيرة كتير. جرّب صورة أصغر.':e&&e.code==='auth'?'انتهت جلستك. سجّل دخولك من جديد.':e&&e.code==='read'?'ما قدرت أفتح الصورة.':'تعذّر الاتصال. جرّب مرة ثانية.';
   }).then(function(){
     ui.scanning=false;
@@ -2610,6 +2700,17 @@ document.addEventListener('click',function(e){
   if(a==='qa-scan'||a==='scan-open'){openScan();return}
   if(a==='scan-consent'){S.scanConsent=true;saveUser();ui.scan={phase:'choose'};render();return}
   if(a==='scan-decline'||a==='scan-close'){ui.sheet=null;ui.scan=null;render();return}
+  if(a==='force-go'){var ff=ui.forceFile;if(!ff||!ff.file)return;ui.imgForce=true;ui.forceFile=null;if(ff.kind==='split')splitFile(ff.file);else scanFile(ff.file);return}
+  if(a==='scn-mode'){ui.scanMode=el.getAttribute('data-m')==='total'?'total':'items';ui.scan={phase:'choose'};render();return}
+  if(a==='scn-all'){if(ui.scan&&ui.scan.rows){var v1=el.getAttribute('data-v')==='1';ui.scan.rows.forEach(function(r){r.sel=v1});render();scnSum()}return}
+  if(a==='scn-redo'){ui.scan={phase:'choose'};render();return}
+  if(a==='scn-save'){
+    var sc3=ui.scan,pk=sc3&&sc3.rows?sc3.rows.filter(function(r){return r.sel&&r.amt>0}):[];
+    if(!pk.length){toast('ما حددت أي صنف');return}
+    ui.scan=null;
+    addTx(pk.map(function(r){return {type:'exp',cat:r.cat,amt:r.amt,note:r.name+(sc3.merchant?' · '+sc3.merchant:''),date:r.date}}),'تمت إضافة '+pk.length+' حركة من الفاتورة');
+    return;
+  }
   if(a==='scan-cam'){var sc1=$('#scan-cam');if(sc1)sc1.click();return}
   if(a==='scan-pick'){var sc2=$('#scan-pick');if(sc2)sc2.click();return}
   if(a==='scan-manual'){ui.scan=null;ui.sheet='add';ui.addType='exp';ui.editId=null;ui.multi=[];render();return}
@@ -2923,6 +3024,13 @@ document.addEventListener('change',function(e){
   if(splitField(el))return;
   if(metalField(el))return;
   if(el&&el.id==='stmt-in'){var sf=el.files&&el.files[0];if(sf)stmtFile(sf);try{el.value=''}catch(x){}return}
+  if(el&&el.getAttribute&&ui.scan&&ui.scan.phase==='items'){
+    var sa=el.getAttribute('data-act'),si=+el.getAttribute('data-i');
+    if(sa==='scn-toggle'&&ui.scan.rows[si]){ui.scan.rows[si].sel=!!el.checked;scnSum();return}
+    if(sa==='scn-cat'&&ui.scan.rows[si]){ui.scan.rows[si].cat=el.value;return}
+    if(sa==='scn-amt'&&ui.scan.rows[si]){var nv=toNum(el.value);if(!isNaN(nv)&&nv>0)ui.scan.rows[si].amt=nv;el.value=fmt(ui.scan.rows[si].amt);scnSum();return}
+    if(sa==='scn-bulk'){ui.scan.rows.forEach(function(r){if(r.name.indexOf('ضريبة')<0)r.cat=el.value});ui.scan.def=el.value;render();scnSum();return}
+  }
   if(el&&el.getAttribute&&el.getAttribute('data-act')==='stmt-toggle'&&ui.stmt&&ui.stmt.rows){ui.stmt.rows[+el.getAttribute('data-i')].sel=!!el.checked;stmtSetCount();return}
   if(el&&el.getAttribute&&el.getAttribute('data-act')==='stmt-cat'&&ui.stmt&&ui.stmt.rows){ui.stmt.rows[+el.getAttribute('data-i')].cat=el.value;return}
   if(el&&(el.id==='scan-cam'||el.id==='scan-pick')){var scf=el.files&&el.files[0];if(scf)scanFile(scf);try{el.value=''}catch(x){}return}
