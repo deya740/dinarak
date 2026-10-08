@@ -48,6 +48,8 @@
 :root[data-persona="employee"]{--accent:var(--employee)}
 :root[data-persona="merchant"]{--accent:var(--merchant)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html.lock{overflow:hidden;overscroll-behavior:none}
+body{overscroll-behavior-y:none}
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans Arabic',Tahoma,system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit;color:inherit}
@@ -142,7 +144,7 @@ nav.nav .add{width:56px;height:56px;border-radius:50%;background:var(--accent);c
 nav.nav .add svg{stroke:var(--accent-ink);width:26px;height:26px}
 
 .scrim{position:fixed;inset:0;background:var(--scrim);z-index:20}
-.sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;max-height:92%;overflow:auto;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom,0px));z-index:21}
+.sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;max-height:92%;max-height:92dvh;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--surface);border-radius:24px 24px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom,0px));z-index:21}
 .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
 .sheet h2{margin:0 0 4px;font-size:28px}
 
@@ -294,6 +296,31 @@ details.acc .in{padding:0 0 12px}
   .dn-s{animation:dnin .8s ease-out backwards}
   @keyframes dnin{from{opacity:0;transform-origin:60px 60px;transform:rotate(-100deg)}}
 }
+
+.sh-h{position:sticky;top:0;z-index:4;background:var(--surface);display:flex;justify-content:space-between;align-items:center;gap:8px;padding:2px 0 8px;margin-bottom:4px}
+.sh-h h2{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sh-sub{font-family:'IBM Plex Sans Arabic',sans-serif;font-size:13px;color:var(--muted);font-weight:400}
+.sh-x{border:0;background:var(--paper);width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;color:var(--ink);flex:none;padding:0}
+.vault{display:grid;grid-template-columns:1fr auto;grid-template-areas:"l p" "v v" "pl pl";gap:2px 8px;background:linear-gradient(140deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#000));color:var(--accent-ink);border-radius:22px;padding:14px 16px;margin:6px 0 10px;box-shadow:0 10px 24px -14px var(--accent)}
+.vault .v-l{grid-area:l;opacity:.85;font-size:13px}.vault .v-p{grid-area:p;opacity:.85;font-size:13px}
+.vault .v-v{grid-area:v;font-size:32px;font-weight:700;line-height:1.2;margin-top:2px}
+.vault .v-pl{grid-area:pl;font-size:14px;font-weight:600}
+.vault .pos{color:#a6f3cc}.vault .neg{color:#ffbdb4}
+.vault .cur{opacity:.8;font-size:.55em;margin-inline-start:4px}
+.pieces-h{display:flex;justify-content:space-between;align-items:center;margin:14px 0 4px}
+.pieces-h h3{margin:0;font-size:18px}
+.piece{display:grid;grid-template-columns:38px 1fr auto;grid-template-areas:"c t t" "c s v" "c s p" "a a a";column-gap:12px;row-gap:1px;padding:12px 0;border-bottom:1px solid var(--line);align-items:center}
+.coin{width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 30% 28%,#fff3c4,#e2a828 58%,#a8730f);box-shadow:inset 0 -3px 5px rgba(0,0,0,.18);grid-area:c;align-self:start;margin-top:2px}
+.coin.silver{background:radial-gradient(circle at 30% 28%,#ffffff,#cdd3da 58%,#8a95a1)}
+.piece .pc-t{grid-area:t;font-weight:600;font-size:15px;min-width:0}
+.piece .pc-s{grid-area:s;color:var(--muted);font-size:12.5px;min-width:0;align-self:start;line-height:1.5}
+.piece .pc-v{grid-area:v;font-weight:700;font-size:16px;text-align:end;white-space:nowrap}
+.piece .pc-p{grid-area:p;font-size:12.5px;font-weight:600;text-align:end;white-space:nowrap}
+.piece .pc-a{grid-area:a;display:flex;gap:14px;justify-content:flex-end;margin-top:2px}
+.piece .pc-a button{border:0;background:transparent;color:var(--accent);font-size:13px;padding:2px 0;font-weight:600}
+.piece .pc-a .del{color:var(--muted);font-weight:500}
+details.more.add summary{border:1.5px dashed var(--accent);border-radius:14px;padding:12px;text-align:center;font-size:15px}
+details.more.add[open] summary{margin-bottom:8px}
 .flag.warn{background:color-mix(in srgb,var(--bad) 20%,var(--surface))}
 .chk{border-radius:12px;padding:8px 12px;font-size:14px;margin:8px 0;border:1.5px solid var(--line)}
 .chk.ok{border-color:var(--good);color:var(--good)}
@@ -446,7 +473,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,tool:null,hist:null,histTs:0,histBusy:false,histErr:false,chartRange:'6m',chartCur:null,chartModel:null,metalEdit:null,metalWarnKey:null,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,locked:false,lockY:0,tool:null,hist:null,histTs:0,histBusy:false,histErr:false,chartRange:'6m',chartCur:null,chartModel:null,metalEdit:null,metalWarnKey:null,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -713,7 +740,7 @@ function homeTiles(s,p,isCur){
 function quickActions(){
   var a=[];
   if(CLOUD){a.push(['qa-scan','camera','صوّر فاتورة']);if(!ui.stmtOff)a.push(['stmt-open','doc','كشف حساب'])}
-  a.push(['split-open','split','قسّم فاتورة']);a.push(['metal-open','gold','ذهبي وفضتي']);
+  a.push(['split-open','split','قسّم فاتورة']);a.push(['metal-open','gold','خزنتي']);
   return '<div class="qa">'+a.map(function(x){return '<button class="qa-i" data-act="'+x[0]+'"><span class="qa-c">'+icon(x[1])+'</span><span>'+x[2]+'</span></button>'}).join('')+'</div>';
 }
 function donutHTML(s){
@@ -790,7 +817,7 @@ function viewTools(){
   g1.push(toolCard('open-report','chart','تقرير الشهر',monthName(MONTH),''));
   if(CLOUD){g2.push(toolCard('qa-scan','camera','صوّر فاتورة','بيقرأ المبلغ والمتجر','',true));if(!ui.stmtOff)g2.push(toolCard('stmt-open','doc','كشف حساب البنك','PDF أو صورة، وبتراجعه','',true))}
   g2.push(toolCard('split-open','split','قسّم فاتورة','بين الأصحاب وبالضريبة','',true));
-  g2.push(toolCard('metal-open','gold','ذهبي وفضتي','قيمته وربحك مع الوقت','',true));
+  g2.push(toolCard('metal-open','gold','خزنتي','ذهبك وفضتك وربحك مع الوقت','',true));
   return '<main class="shell">'+topbar()+'<h2 class="sec disp">الأدوات</h2><h3 class="sub">أدواتك</h3><div class="tools">'+g1.join('')+'</div><h3 class="sub">أدوات ذكية</h3><div class="tools">'+g2.join('')+'</div></main>';
 }
 function viewExtra(){
@@ -936,6 +963,7 @@ function render(){
   if(S&&S.persona&&S.billsMonth!==MONTH){S.bills.forEach(function(b){b.paid=false});S.billsMonth=MONTH;saveUser()}
   if(S&&S.persona&&ui.screen==='app'){var rmade=applyRecurring();if(rmade){saveUser();toast('تمت إضافة '+rmade+' حركة متكررة')}}
   if(S&&S.persona&&ui.screen==='app')root.setAttribute('data-persona',S.persona);else root.removeAttribute('data-persona');
+  syncScrollLock();
   if(ui.sheet!=='add'&&ui.listening)stopVoice();
   var key=ui.screen+'|'+ui.tab+'|'+(ui.tool||'')+'|'+ui.month+'|'+(S?S.persona:''), anim=key!==ui.lastKey;ui.lastKey=key;
   function E(h){return anim?h.replace('<main class="shell','<main class="shell enter'):h}
@@ -1567,6 +1595,7 @@ function metalCalc(list,pr,adj){
   return {rows:rows,tot:tot};
 }
 function metalLabel(h){return h.metal==='gold'?'ذهب عيار '+h.purity:'فضة '+h.purity}
+function plCompact(pl,pct,code){return '<span class="'+(pl>=0?'pos':'neg')+'"><bdi dir="ltr">'+(pl>=0?'+':'−')+fmtCode(Math.abs(pl),code)+(pct!==null?' ('+(pl>=0?'+':'−')+Math.abs(pct).toFixed(1)+'%)':'')+'</bdi></span>'}
 function plHTML(pl,pct,code){return '<span class="'+(pl>=0?'pos':'neg')+'">'+moneyCode(Math.abs(pl),code,pl>=0?'+':'−')+(pct!==null?' <bdi dir="ltr">('+(pl>=0?'+':'−')+Math.abs(pct).toFixed(1)+'%)</bdi>':'')+'</span>'}
 function ensurePrices(force){
   var fresh=ui.prices&&(Date.now()-ui.pricesTs<300000);
@@ -1586,7 +1615,7 @@ function agoText(iso){
 }
 function metalsCard(){
   var ms=S.metals||[];if(!ms.length)return '';
-  var c=metalCalc(ms,ui.prices,S.metalAdj||0),codes=Object.keys(c.tot),h='<button class="metal-card" data-act="metal-open"><b>ذهبي وفضتي</b>';
+  var c=metalCalc(ms,ui.prices,S.metalAdj||0),codes=Object.keys(c.tot),h='<button class="metal-card" data-act="metal-open"><b>خزنتي</b>';
   if(!ui.prices)h+='<small class="muted">'+(ui.pricesErr?'تعذّر تحميل الأسعار. اضغط للمحاولة.':'جاري تحميل الأسعار…')+'</small>';
   else if(!codes.length)h+='<small class="muted">الأسعار غير متاحة لعملة مشترياتك حالياً.</small>';
   else codes.forEach(function(code){var t=c.tot[code],pl=t.val-t.cost;h+='<span class="v">'+moneyCode(t.val,code)+'</span><small>'+plHTML(pl,t.cost>0?pl/t.cost*100:null,code)+(ui.prices.stale?' · سعر قديم':'')+'</small>'});
@@ -1596,31 +1625,43 @@ function purityOptions(metal,sel){return (metal==='gold'?KARATS:SILVERS).map(fun
 function sheetMetals(){
   var ms=S.metals||[],pr=ui.prices,adj=S.metalAdj||0,mine=CCODE[S.country]||'JOD',view=ui.metalCur||mine,h='';
   var curOpts=function(sel){return MCODES.map(function(c){return '<option value="'+c+'"'+(c===sel?' selected':'')+'>'+codeInfo(c).n+' ('+codeInfo(c).cur+')</option>'}).join('')};
-  if(pr){
-    h+='<div class="chk'+(pr.stale?' warn':'')+'"><div class="inl" style="align-items:center;justify-content:space-between;gap:8px"><b>سعر الغرام اليوم</b><select class="f" data-act="metal-view" style="max-width:190px" aria-label="عملة العرض">'+curOpts(view)+'</select></div>';
-    var rowsP=[['ذهب عيار 24',metalPerGram(pr,'gold',24,view,adj)],['ذهب عيار 21',metalPerGram(pr,'gold',21,view,adj)],['ذهب عيار 18',metalPerGram(pr,'gold',18,view,adj)],['فضة 999',metalPerGram(pr,'silver',999,view,adj)]];
-    if(rowsP[0][1]===null)h+='<p class="fine" style="margin:6px 0 0">السعر غير متاح لهالعملة حالياً.</p>';
-    else rowsP.forEach(function(r){h+='<div style="display:flex;justify-content:space-between;padding:2px 0"><span>'+r[0]+'</span><b>'+moneyCode(r[1],view)+'</b></div>'});
-    h+='<p class="fine" style="margin:6px 0 0">آخر تحديث: '+(agoText(pr.fetched_at||pr.as_of)||'—')+(pr.stale?' — الأسعار قديمة لأن المصدر غير متاح حالياً، وهي آخر سعر معروف.':'')+' <button class="link" style="display:inline;margin:0" data-act="metal-refresh">تحديث</button></p></div>';
-  }else h+='<div class="chk">'+(ui.pricesErr?'تعذّر تحميل الأسعار. <button class="link" style="display:inline;margin:0" data-act="metal-refresh">حاول مرة ثانية</button>':'جاري تحميل الأسعار…')+'</div>';
   var c=metalCalc(ms,pr,adj),codes=Object.keys(c.tot);
-  if(codes.length){h+='<div class="sp-sum">'+codes.map(function(code){var t=c.tot[code],pl=t.val-t.cost;return '<div class="row-i"><div class="t"><b>المجموع ('+codeInfo(code).cur+')</b><small>دفعت '+fmtCode(t.cost,code)+'</small></div><div style="text-align:end"><div style="font-weight:700;font-size:18px">'+moneyCode(t.val,code)+'</div><small>'+plHTML(pl,t.cost>0?pl/t.cost*100:null,code)+'</small></div></div>'}).join('')+'</div>'}
+  /* 1) حالة الأسعار (فقط إذا في مشكلة) */
+  if(!pr)h+='<div class="chk">'+(ui.pricesErr?'تعذّر تحميل الأسعار. <button class="link" style="display:inline;margin:0" data-act="metal-refresh">حاول مرة ثانية</button>':'جاري تحميل الأسعار…')+'</div>';
+  else if(pr.stale)h+='<div class="chk warn">الأسعار قديمة لأن المصدر غير متاح حالياً، وهي آخر سعر معروف.</div>';
+  /* 2) الملخص */
+  if(codes.length)h+=codes.map(function(code){var t=c.tot[code],pl=t.val-t.cost;return '<div class="vault"><small class="v-l">المجموع ('+codeInfo(code).cur+')</small><small class="v-p">دفعت '+fmtCode(t.cost,code)+'</small><div class="v-v">'+moneyCode(t.val,code)+'</div><div class="v-pl">'+plHTML(pl,t.cost>0?pl/t.cost*100:null,code)+'</div></div>'}).join('');
+  /* 3) الرسم */
   h+='<div id="mchart">'+chartInner()+'</div>';
+  /* 4) قطعي */
+  h+='<div class="pieces-h"><h3>قطعي'+(ms.length?' ('+ms.length+')':'')+'</h3></div>';
   h+=c.rows.map(function(r){
     var x=r.h;
-    return '<div class="row-i" style="display:block"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-weight:600">'+metalLabel(x)+' · '+Number(x.grams).toFixed(2)+' غرام</b><button class="x del" data-act="metal-del" data-id="'+x.id+'" aria-label="حذف">'+icon('trash')+'</button></div>'+
-      '<div class="chips" style="margin:4px 0"><button class="btn ghost small" data-act="metal-edit" data-id="'+x.id+'">تعديل</button></div><small class="fine">دفعت '+moneyCode(x.cost,x.cur)+(x.grams>0?' (الغرام '+moneyCode(x.cost/x.grams,x.cur)+')':'')+' · '+esc(x.date)+(x.note?' · '+esc(x.note):'')+'</small>'+
-      (r.val===null?'<div class="fine">السعر غير متاح لعملة هالشراء حالياً.</div>':'<div>قيمته اليوم '+moneyCode(r.val,x.cur)+' · '+plHTML(r.pl,r.pct,x.cur)+'</div>')+'</div>';
-  }).join('')||'<div class="empty">ما أضفت أي ذهب أو فضة بعد.</div>';
-  h+='<h3 style="margin:16px 0 4px;font-size:18px">'+(ui.metalEdit?'تعديل الشراء':'أضف ذهب أو فضة')+'</h3>'+
+    return '<div class="piece"><span class="coin'+(x.metal==='silver'?' silver':'')+'"></span><div class="pc-t">'+metalLabel(x)+' · '+Number(x.grams).toFixed(2)+' غرام</div>'+
+      (r.val===null?'<div class="pc-v muted" style="font-weight:400">السعر غير متاح</div><div class="pc-s">دفعت '+moneyCode(x.cost,x.cur)+' · <bdi dir="ltr">'+esc(x.date)+'</bdi>'+(x.note?' · '+esc(x.note):'')+'</div><div class="pc-p"></div>':
+      '<div class="pc-v">'+moneyCode(r.val,x.cur)+'</div><div class="pc-s">دفعت '+moneyCode(x.cost,x.cur)+' · <bdi dir="ltr">'+esc(x.date)+'</bdi>'+(x.note?' · '+esc(x.note):'')+'</div><div class="pc-p">'+plCompact(r.pl,r.pct,x.cur)+'</div>')+
+      '<div class="pc-a"><button data-act="metal-edit" data-id="'+x.id+'">تعديل</button><button class="del" data-act="metal-del" data-id="'+x.id+'" aria-label="حذف">حذف</button></div></div>';
+  }).join('')||'<div class="empty">ما أضفت أي ذهب أو فضة بعد. أضف أول قطعة من تحت.</div>';
+  /* 5) إضافة */
+  h+='<details class="more add" style="margin-top:10px"'+((ui.metalEdit||!ms.length)?' open':'')+'><summary>'+(ui.metalEdit?'تعديل الشراء':'＋ أضف ذهب أو فضة')+'</summary>'+
     '<div class="inl"><div style="flex:1"><label class="l" for="m-metal">النوع</label><select class="f" id="m-metal" data-act="metal-kind"><option value="gold">ذهب</option><option value="silver">فضة</option></select></div><div style="flex:1"><label class="l" for="m-purity">العيار</label><select class="f" id="m-purity">'+purityOptions('gold',21)+'</select></div></div>'+
     '<div class="inl"><div style="flex:1"><label class="l" for="m-grams">الوزن</label><input class="f" id="m-grams" inputmode="decimal" placeholder="مثلاً 25"></div><div style="flex:1"><label class="l" for="m-unit">بوحدة</label><select class="f" id="m-unit"><option value="g">غرام</option><option value="oz">أونصة</option></select></div></div>'+
     '<div class="inl"><div style="flex:1"><label class="l" for="m-cost">إجمالي اللي دفعته</label><input class="f" id="m-cost" inputmode="decimal" placeholder="0.000"></div><div style="flex:1"><label class="l" for="m-cur">بعملة</label><select class="f" id="m-cur">'+curOpts(mine)+'</select></div></div>'+
     '<label class="l" for="m-date">تاريخ الشراء</label><input class="f" id="m-date" type="date" value="'+TODAY+'" max="'+TODAY+'"><label class="l" for="m-note">ملاحظة (اختياري)</label><input class="f" id="m-note" maxlength="60" placeholder="مثلاً: سلسال، سبيكة">'+
-    '<div id="m-warn" class="chk warn" style="display:none" aria-live="polite"></div><button class="btn block" id="m-save" data-act="metal-add">'+(ui.metalEdit?'احفظ التعديل':'أضف')+'</button>'+(ui.metalEdit?'<button class="btn ghost block" data-act="metal-edit-cancel">إلغاء التعديل</button>':'')+
-    '<h3 style="margin:16px 0 4px;font-size:18px">تعديل السعر ليطابق محلك</h3><div class="inl" style="align-items:center"><input class="f" data-act="metal-adj" inputmode="decimal" dir="ltr" style="max-width:110px;text-align:start" value="'+adj+'" aria-label="نسبة التعديل"><span class="fine" style="flex:1">% (مثلاً −3 إذا الصايغ بيشتري بأقل من السعر العالمي)</span></div>'+
+    '<div id="m-warn" class="chk warn" style="display:none" aria-live="polite"></div><button class="btn block" id="m-save" data-act="metal-add">'+(ui.metalEdit?'احفظ التعديل':'أضف')+'</button>'+(ui.metalEdit?'<button class="btn ghost block" data-act="metal-edit-cancel">إلغاء التعديل</button>':'')+'</details>';
+  /* 6) الأسعار والتعديل */
+  var p21=pr?metalPerGram(pr,'gold',21,view,adj):null;
+  h+='<details class="acc" style="margin-top:12px"><summary>أسعار اليوم'+(p21!==null?' <small class="muted" style="font-weight:400">عيار 21: '+fmtCode(p21,view)+' '+codeInfo(view).cur+'</small>':'')+'</summary><div class="in">';
+  if(pr){
+    h+='<div class="inl" style="align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px"><b>سعر الغرام</b><select class="f" data-act="metal-view" style="max-width:190px" aria-label="عملة العرض">'+curOpts(view)+'</select></div>';
+    var rowsP=[['ذهب عيار 24',metalPerGram(pr,'gold',24,view,adj)],['ذهب عيار 21',metalPerGram(pr,'gold',21,view,adj)],['ذهب عيار 18',metalPerGram(pr,'gold',18,view,adj)],['فضة 999',metalPerGram(pr,'silver',999,view,adj)]];
+    if(rowsP[0][1]===null)h+='<p class="fine" style="margin:6px 0 0">السعر غير متاح لهالعملة حالياً.</p>';
+    else rowsP.forEach(function(r){h+='<div style="display:flex;justify-content:space-between;padding:3px 0"><span>'+r[0]+'</span><b>'+moneyCode(r[1],view)+'</b></div>'});
+    h+='<p class="fine" style="margin:6px 0 0">آخر تحديث: '+(agoText(pr.fetched_at||pr.as_of)||'—')+(pr.stale?' — الأسعار قديمة لأن المصدر غير متاح حالياً، وهي آخر سعر معروف.':'')+' <button class="link" style="display:inline;margin:0" data-act="metal-refresh">تحديث</button></p>';
+  }else h+='<p class="fine">جاري تحميل الأسعار…</p>';
+  h+='<h3 class="sub" style="margin:14px 0 4px">تعديل السعر ليطابق محلك</h3><div class="inl" style="align-items:center"><input class="f" data-act="metal-adj" inputmode="decimal" dir="ltr" style="max-width:110px;text-align:start" value="'+adj+'" aria-label="نسبة التعديل"><span class="fine" style="flex:1">% (مثلاً −3 إذا الصايغ بيشتري بأقل من السعر العالمي)</span></div></div></details>'+
     '<p class="fine" style="margin-top:14px">الأسعار تقديرية: السعر العالمي للذهب والفضة محوّل لعملتك. سعر الصايغ عندك قد يختلف بسبب المصنعية وفرق الشراء والبيع، والمصنعية اللي دفعتها ما بترجع عند البيع. المعلومات للمتابعة فقط وليست نصيحة استثمارية.</p>';
-  return '<div class="scrim" data-act="metal-close"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="ذهبي وفضتي"><div class="grab"></div><h2 class="disp">ذهبي وفضتي '+fb()+'</h2>'+h+'</section>';
+  return '<div class="scrim" data-act="metal-close"></div><section class="sheet" role="dialog" aria-modal="true" aria-label="خزنتي"><div class="grab"></div><div class="sh-h"><h2 class="disp">خزنتي <span class="sh-sub">ذهبك وفضتك</span> '+fb()+'</h2><button class="sh-x" data-act="metal-close" aria-label="إغلاق">×</button></div>'+h+'</section>';
 }
 /* ---------- رسم بياني لقيمة الذهب مع الوقت ---------- */
 var CHART_RANGES=[['1m','شهر',30],['3m','3 شهور',90],['6m','6 شهور',180],['1y','سنة',365],['all','من أول شراء',0]];
@@ -1662,7 +1703,7 @@ function chartInner(){
   var ms=S.metals||[],pr=ui.prices,goldCur=[];
   ms.forEach(function(h){if(h.metal==='gold'&&goldCur.indexOf(h.cur)<0)goldCur.push(h.cur)});
   var code=(ui.chartCur&&(goldCur.indexOf(ui.chartCur)>-1||!goldCur.length))?ui.chartCur:(goldCur[0]||ui.metalCur||CCODE[S.country]||'JOD'),range=ui.chartRange||'6m';
-  var title='<h3 class="sub" style="margin:16px 0 6px">'+(goldCur.length?'قيمة ذهبي مع الوقت':'سعر غرام الذهب (عيار 21)')+'</h3>';
+  var title='<h3 class="sub" style="margin:14px 0 6px">'+(goldCur.length?'قيمة ذهبك مع الوقت':'سعر غرام الذهب (عيار 21)')+'</h3>';
   ui.chartModel=null;
   if(!ui.hist)return title+'<div class="chk">'+(ui.histErr?'تعذّر تحميل تاريخ الأسعار. <button class="link" style="display:inline;margin:0" data-act="hist-refresh">حاول مرة ثانية</button>':'جاري تحميل الرسم…')+'</div>';
   var ser=chartSeries(ui.hist.points,ms,pr,code,S.metalAdj||0,range,TODAY);
@@ -1694,7 +1735,7 @@ function chartInner(){
   if(mode==='value'&&last.val!==null){
     var pl=last.val-last.cost,pct=last.cost>0?pl/last.cost*100:null;lc=pl>=0?'var(--good)':'var(--bad)';
     pillTxt='<bdi dir="ltr">'+(pl>=0?'+':'−')+fmtCode(Math.abs(pl),code)+(pct!==null?' ('+(pl>=0?'+':'−')+Math.abs(pct).toFixed(1)+'%)':'')+'</bdi>';
-    head='<div><small>قيمة ذهبك اليوم</small><div class="mc-big">'+moneyCode(last.val,code)+'</div></div><span class="mc-pill" title="ربحك أو خسارتك الكلية">'+pillTxt+'</span>';
+    head='';
   }else{
     lc=pc>=0?'var(--good)':'var(--bad)';
     head='<div><small>سعر غرام عيار 21</small><div class="mc-big">'+moneyCode(lastP*21/24,code)+'</div></div><span class="mc-pill"><bdi dir="ltr">'+(pc>=0?'+':'−')+Math.abs(pc).toFixed(1)+'%</bdi></span>';
@@ -1714,7 +1755,7 @@ function chartInner(){
   if(ms.some(function(h){return h.metal==='silver'}))notes+='<p class="fine" style="margin:4px 0">الفضة غير مشمولة بالرسم (ما في تاريخ مجاني لسعرها).</p>';
   if(code==='EGP'||code==='ILS'||code==='KWD')notes+='<p class="fine" style="margin:4px 0">هالعملة مش مربوطة بالدولار وما عنا أسعار صرف قديمة، فالرسم تقريبي: سعر الذهب العالمي القديم × سعر الصرف اليوم.</p>';
   if(ui.hist.stale)notes+='<p class="fine" style="margin:4px 0">بيانات الرسم قديمة لأن المصدر غير متاح حالياً.</p>';
-  return title+'<div class="mchart card" style="--lc:'+lc+'"><div class="mc-head">'+head+'</div>'+ranges+sel+'<div class="mc-wrap">'+svg+'<div class="mc-tip" id="mc-tip" style="display:none"></div></div>'+legend+notes+'</div>';
+  return title+'<div class="mchart card" style="--lc:'+lc+'">'+(head?'<div class="mc-head">'+head+'</div>':'')+ranges+sel+'<div class="mc-wrap">'+svg+'<div class="mc-tip" id="mc-tip" style="display:none"></div></div>'+legend+notes+'</div>';
 }
 function ensureHist(force){
   var fresh=ui.hist&&(Date.now()-ui.histTs<21600000);
@@ -1735,6 +1776,22 @@ function metalField(el){
   if(act==='chart-cur'){ui.chartCur=MCODES.indexOf(el.value)>-1?el.value:null;var cc=$('#mchart');if(cc)cc.innerHTML=chartInner();return true}
   if(act==='metal-kind'){var pu=$('#m-purity');if(pu)pu.innerHTML=purityOptions(el.value==='silver'?'silver':'gold',el.value==='silver'?925:21);return true}
   return false;
+}
+function syncScrollLock(){
+  try{
+    var on=!!ui.sheet,b=document.body,h=document.documentElement;
+    if(!b||!h)return;
+    if(on&&!ui.locked){
+      ui.lockY=window.pageYOffset||0;
+      b.style.position='fixed';b.style.top='-'+ui.lockY+'px';b.style.left='0';b.style.right='0';b.style.width='100%';
+      if(h.classList)h.classList.add('lock');
+      ui.locked=true;
+    }else if(!on&&ui.locked){
+      b.style.position='';b.style.top='';b.style.left='';b.style.right='';b.style.width='';
+      if(h.classList)h.classList.remove('lock');
+      ui.locked=false;window.scrollTo(0,ui.lockY||0);
+    }
+  }catch(e){}
 }
 function pickDate(){
   var el=$('#f-date'),v=el&&el.value;
