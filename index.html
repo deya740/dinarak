@@ -451,6 +451,11 @@ nav.nav button[aria-current="page"]::after{content:'';position:absolute;bottom:-
 .tool::after{content:'‹';color:var(--muted);font-size:20px;margin-inline-start:auto}
 .tool .fbadge{position:static;order:3}
 .li-r.dn b{text-decoration:line-through;opacity:.55}.li-card{display:flex;align-items:center;gap:12px;width:100%;text-align:start;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+
+/* no double-tap zoom on buttons and controls; pinch zoom stays available */
+html,body,button,a,.qchip,.tool,.row-i,.chip,.btn,summary,label,select{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button,.qchip{-webkit-user-select:none;user-select:none}
+input,select,textarea{font-size:max(16px,1em)}
 </style>
 </head>
 <body>
