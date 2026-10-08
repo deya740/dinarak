@@ -350,7 +350,7 @@ details.more.add[open] summary{margin-bottom:8px}
 .bud-in .f{max-width:160px;padding:8px 10px;font-size:15px}
 .bud-in small{color:var(--muted);font-size:12.5px}
 .vault .bud-bar{background:rgba(255,255,255,.28);margin:4px 0}.vault .bud-bar i{background:#fff}
-.bcard{display:block;width:100%;text-align:start;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;margin-bottom:16px}
+.bcard{display:block;width:100%;text-align:start;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:9px 13px 8px;margin-bottom:12px}.bcard .bh{align-items:center;gap:8px}.bcard .bh b{font-size:15px}.bcard .bchip{margin:0;padding:2px 8px;font-size:12px}.bmore{font-size:12px;color:var(--muted)}.bud-bar.slim{height:5px;margin:7px 0 2px}
 .bcard .bh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .bchip{display:inline-flex;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;margin:2px 0 0 6px}
 .bchip.warn{background:color-mix(in srgb,var(--gold) 24%,transparent);color:var(--ink)}
@@ -917,7 +917,7 @@ function viewHome(){
     '<span class="msw"><button data-act="month" data-m="'+(older||'')+'" '+(older?'':'disabled')+' aria-label="الشهر السابق">›</button><b aria-live="polite">'+monthName(ui.month)+'</b><button data-act="month" data-m="'+(newer||'')+'" '+(newer?'':'disabled')+' aria-label="الشهر التالي">‹</button></span></div>'+
     '<div class="big"><bdi dir="ltr" class="amt" data-count="'+s.rem+'">'+fmt(s.rem)+'</bdi><span class="cur">'+C().cur+'</span></div>'+
     '<div class="sub"><div><small>'+(p==='merchant'?'مبيعات':'دخل')+'</small><b>'+amt(s.inc)+'</b></div><div><small>مصاريف</small><b>'+amt(s.exp)+'</b></div></div></div></div>'+
-    quickActions()+alertBanner()+onbCard()+installCard()+'<div class="tiles">'+homeTiles(s,p,isCur)+'</div>'+budgetCard()+metalsCard()+
+    quickActions()+alertBanner()+onbCard()+'<div class="tiles">'+homeTiles(s,p,isCur)+'</div>'+budgetCard()+metalsCard()+installCard()+
     '<section class="blk card"><div class="sec-h"><h2 class="sec disp">'+t('whereMoney')+'</h2><button class="link2" data-act="open-report">تقرير '+monthName(ui.month)+'</button></div>'+donutHTML(s)+'</section>'+
     '<section class="blk"><div class="sec-h"><h2 class="sec disp">آخر الحركات</h2><button class="link2" data-act="tx-open">بحث وعرض الكل</button></div>'+recent+moreBtn+'</section></main>';
 }
@@ -1084,6 +1084,40 @@ function sheetAdd(){
     '<button class="btn block" data-act="save-tx">'+(ed?'حفظ التعديل':'حفظ')+'</button></section>';
 }
 
+function reportImage(ym){
+  var s=stats(ym),W=1080,H=1350,cv=document.createElement('canvas');cv.width=W;cv.height=H;var x=cv.getContext('2d');
+  var F="'IBM Plex Sans Arabic','Noto Sans Arabic',Tahoma,sans-serif",cu=C().cur;
+  function T(txt,px,py,size,col,al,wt){x.font=(wt||400)+' '+size+'px '+F;x.fillStyle=col;x.textAlign=al||'right';x.direction=(al==='left')?'ltr':(/[\u0600-\u06FF]/.test(txt)?'rtl':'ltr');x.fillText(txt,px,py)}
+  function rr(px,py,w,h,r,col){x.fillStyle=col;x.beginPath();if(x.roundRect)x.roundRect(px,py,w,h,r);else x.rect(px,py,w,h);x.fill()}
+  var go=(document.fonts&&document.fonts.load)?Promise.all([document.fonts.load("400 30px 'IBM Plex Sans Arabic'"),document.fonts.load("700 30px 'IBM Plex Sans Arabic'")]).catch(function(){}):Promise.resolve();
+  return go.then(function(){
+    var g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0E3B33');g.addColorStop(1,'#0A2B25');x.fillStyle=g;x.fillRect(0,0,W,H);
+    T('دينارك',W-70,120,54,'#F3E9D2','right',700);T('تقرير '+monthName(ym),70,120,40,'#9FC7BC','left',400);
+    var kp=[[S.persona==='merchant'?'مبيعات':'دخل',s.inc],['مصاريف',s.exp],['الباقي',s.rem]];
+    kp.forEach(function(k,i){var bx=70+i*322,bw=302;rr(bx,190,bw,170,26,'rgba(255,255,255,.08)');T(k[0],bx+bw-26,244,30,'#9FC7BC','right');T(fmt(k[1]),bx+bw-26,320,i===2?44:40,i===2?'#F2C14E':'#FFFFFF','right',700)});
+    T('العملة: '+C().cn,W-70,410,26,'#6F9B90','right');
+    var pct=s.inc>0?Math.round(s.rem/s.inc*100):null;
+    if(pct!==null)T((pct>=0?'ادّخرت ':'تجاوزت دخلك بـ ')+Math.abs(pct)+'% هالشهر',W-70,470,36,'#F3E9D2','right',700);
+    T('وين راحت الفلوس',W-70,560,34,'#F3E9D2','right',700);
+    var cats=s.cats.slice(0,6),mx=cats.length?cats[0].v:1,y=610;
+    cats.forEach(function(c){
+      T(CATS[c.k].n,W-70,y+30,30,'#FFFFFF','right');T(fmt(c.v)+' '+cu+' · '+Math.round(c.v/s.exp*100)+'%',70,y+30,28,'#9FC7BC','left');
+      rr(70,y+48,940,16,8,'rgba(255,255,255,.1)');rr(70+940-Math.max(16,940*c.v/mx),y+48,Math.max(16,940*c.v/mx),16,8,CATS[c.k].c||'#F2C14E');y+=96;
+    });
+    if(!cats.length)T('ما في مصاريف مسجلة',W-70,y+30,30,'#9FC7BC','right');
+    T('مصاريفك مرتّبة، شهر بعد شهر',W/2,H-70,28,'#6F9B90','center');
+    return new Promise(function(res,rej){cv.toBlob(function(b){b?res(b):rej(new Error('blob'))},'image/png')});
+  });
+}
+function shareReportImage(){
+  if(ui.repImgBusy)return;ui.repImgBusy=true;
+  reportImage(ui.month).then(function(blob){
+    var name='dinarak-'+ui.month+'.png',file=null;
+    try{file=new File([blob],name,{type:'image/png'})}catch(e){}
+    if(file&&navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share){return navigator.share({files:[file],title:'تقرير '+monthName(ui.month)}).catch(function(e){if(!e||e.name!=='AbortError')throw e})}
+    var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(u)},4000);toast('تم تنزيل الصورة');
+  }).catch(function(){toast('تعذّر إنشاء الصورة')}).then(function(){ui.repImgBusy=false});
+}
 function sheetReport(){
   var ym=ui.month,isCur=ym===MONTH,s=stats(ym),prevYm=ymAdd(ym,-1),pv=stats(prevYm,isCur?DAY:0),L=[];
   var rows=s.cats.map(function(c){return '<div class="rep-bar"><span class="nm">'+CATS[c.k].n+'</span><span class="tr"><i style="width:'+Math.round(c.v/s.exp*100)+'%;background:'+CATS[c.k].c+'"></i></span><span class="vl">'+amt(c.v)+'</span></div>'}).join('');
@@ -1104,6 +1138,7 @@ function sheetReport(){
     '<div class="sh-h"><h2 class="disp">تقرير الشهر <span class="pill">مجاني دائماً</span></h2><button class="sh-x" data-act="close-sheet" aria-label="إغلاق">×</button></div>'+
     '<div class="msw lt"><button data-act="month" data-m="'+(older||'')+'" '+(older?'':'disabled')+' aria-label="الشهر السابق">›</button><b aria-live="polite">'+monthName(ym)+'</b><button data-act="month" data-m="'+(newer||'')+'" '+(newer?'':'disabled')+' aria-label="الشهر التالي">‹</button></div>'+
     '<div class="rep3"><div><small>'+(S.persona==='merchant'?'مبيعات':'دخل')+'</small><b>'+amt(s.inc)+'</b></div><div><small>مصاريف</small><b>'+amt(s.exp)+'</b></div><div class="rem"><small>الباقي</small><b>'+amt(s.rem)+'</b></div></div>'+
+    '<button class="btn ghost block" data-act="report-img" style="margin-top:10px">شارك التقرير كصورة</button><p class="fine" style="margin:4px 0 0">الصورة فيها أرقامك. شاركها بس مع اللي بتثق فيه.</p>'+
     '<h3 class="sub" style="margin:14px 0 6px">وين راحت الفلوس</h3><div class="card" style="padding:12px">'+donutHTML(s)+(rows?'<details class="more"><summary>كل التصنيفات ('+s.cats.length+')</summary><div style="margin-top:6px">'+rows+'</div></details>':'')+'</div>'+
     (s.exp>0?'<h3 class="sub" style="margin:14px 0 6px">إيقاع الصرف اليومي</h3><div class="card" style="padding:12px">'+dayBars(ym,s)+'</div>':'')+
     (L.length?'<h3 class="sub" style="margin:14px 0 6px">ملاحظات الشهر</h3><div class="facts">'+L.map(function(x){return '<div class="fact">'+esc(x)+'</div>'}).join('')+'</div>':'')+
@@ -1371,9 +1406,9 @@ function budgetCard(){
   if(ui.month!==MONTH)return '';
   var rows=budgetRows(MONTH);if(!rows.length)return '';
   var tb=rows.reduce(function(a,r){return a+r.b},0),ts=rows.reduce(function(a,r){return a+r.sp},0),pc=ts/tb*100,st=pc>=100?'bad':pc>=80?'warn':'ok';
-  var al=rows.filter(function(r){return r.st!=='ok'}).slice(0,3);
-  return '<button class="bcard" data-act="tool" data-t="budget"><div class="bh"><b>الميزانية</b><small class="muted">'+Math.round(pc)+'% · '+(tb>=ts?'باقي '+fmt(tb-ts):'تجاوزت بـ '+fmt(ts-tb))+' '+C().cur+'</small></div><div class="bud-bar"><i class="'+st+'" style="width:'+Math.min(100,pc)+'%"></i></div>'+
-    (al.length?'<div>'+al.map(function(r){return '<span class="bchip '+r.st+'">'+CATS[r.k].n+' '+Math.round(r.pct)+'%</span>'}).join('')+'</div>':'<small class="muted">كل تصنيفاتك ضمن الميزانية</small>')+'</button>';
+  var al=rows.filter(function(r){return r.st!=='ok'});
+  var note=al.length?'<span class="bchip '+al[0].st+'">'+CATS[al[0].k].n+' '+Math.round(al[0].pct)+'%</span>'+(al.length>1?'<span class="bmore">+'+(al.length-1)+'</span>':''):'';
+  return '<button class="bcard" data-act="tool" data-t="budget"><div class="bh"><b>الميزانية</b>'+note+'<small class="muted" style="margin-inline-start:auto">'+(tb>=ts?'باقي ':'تجاوزت ')+'<bdi dir="ltr">'+fmt(Math.abs(tb-ts))+' '+C().cur+'</bdi> · <bdi dir="ltr">'+Math.round(pc)+'%</bdi></small></div><div class="bud-bar slim"><i class="'+st+'" style="width:'+Math.min(100,pc)+'%"></i></div></button>';
 }
 function viewBudgets(){
   var rows=budgetRows(MONTH),b=S.budgets||{},by=stats(MONTH).by,h='';
@@ -2506,6 +2541,7 @@ document.addEventListener('click',function(e){
     if(!ui.prices)ensurePrices();else checkAlerts();render();toast('تمت إضافة التنبيه');return;
   }
   if(a==='alert-del'){S.alerts=(S.alerts||[]).filter(function(x){return x.id!==id});saveUser();render();return}
+  if(a==='report-img'){shareReportImage();return}
   if(a==='install-app'){var di=deferredInstall;if(di){di.prompt();Promise.resolve(di.userChoice).then(function(){deferredInstall=null;render()}).catch(function(){})}return}
   if(a==='install-hide'){try{localStorage.setItem('dn_inst_hide','1')}catch(e){}render();return}
   if(a==='pin-key'){
