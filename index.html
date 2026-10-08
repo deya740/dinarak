@@ -610,6 +610,7 @@ function cleanLists(u){
     var okP=m.metal==='gold'?(isNum(m.purity)&&m.purity>=8&&m.purity<=24):(isNum(m.purity)&&m.purity>=500&&m.purity<=1000);
     return {id:String(m.id||uid()),metal:m.metal,purity:okP?Math.round(m.purity):(m.metal==='gold'?21:925),grams:m.grams,cost:m.cost,cur:MCODES.indexOf(m.cur)>-1?m.cur:(CCODE[u.country]||'JOD'),date:/^\d{4}-\d{2}-\d{2}$/.test(m.date||'')?m.date:TODAY,note:String(m.note||'').slice(0,60)}});
   u.alerts=(Array.isArray(u.alerts)?u.alerts:[]).filter(function(a){return a&&(a.metal==='gold'||a.metal==='silver')&&(a.dir==='above'||a.dir==='below')&&isNum(a.price)&&a.price>0&&isNum(a.purity)}).slice(0,10).map(function(a){return {id:String(a.id||uid()),metal:a.metal,purity:Math.round(a.purity),dir:a.dir,price:a.price,fired:!!a.fired,at:isNum(a.at)?a.at:0}});
+  u.circles=(Array.isArray(u.circles)?u.circles:[]).filter(function(c){return c&&isNum(c.amt)&&c.amt>0&&isNum(c.n)&&c.n>=2&&c.n<=60&&isNum(c.turn)&&c.turn>=1&&c.turn<=c.n&&/^\d{4}-\d{2}$/.test(String(c.start||''))}).slice(0,12).map(function(c){return {id:String(c.id||uid()),name:String(c.name||'جمعية').slice(0,60),amt:c.amt,n:Math.round(c.n),turn:Math.round(c.turn),start:c.start,paid:(Array.isArray(c.paid)?c.paid:[]).filter(function(m){return /^\d{4}-\d{2}$/.test(String(m))}).slice(0,60),recv:!!c.recv}});
   u.metalAdj=isNum(u.metalAdj)?Math.max(-30,Math.min(30,u.metalAdj)):0;
   u.recurring=(Array.isArray(u.recurring)?u.recurring:[]).filter(function(r){return r&&(r.type==='inc'||r.type==='exp')&&isNum(r.amt)&&r.amt>0&&isNum(r.day)}).slice(0,50).map(function(r){return {id:String(r.id||uid()),type:r.type,cat:CATS[r.cat]?r.cat:(r.type==='inc'?'otherinc':'other'),amt:r.amt,note:String(r.note||'').slice(0,100),day:recDay(r.day),active:r.active!==false,next:/^\d{4}-\d{2}$/.test(r.next||'')?r.next:MONTH}});
   return u;
@@ -964,6 +965,32 @@ function viewFriends(){
     '<div class="inl" style="padding:0 0 10px;border-bottom:1.5px dashed var(--line)"><button class="btn small" data-act="debt-wa" data-id="'+d.id+'">ذكّره بواتساب</button><button class="btn ghost small" data-act="debt-phone" data-id="'+d.id+'">'+(d.phone?'عدّل الرقم':'أضف رقمه')+'</button><button class="btn ghost small" data-act="debt-forgive" data-id="'+d.id+'">شطب</button></div>';
   }).join('')||'<div class="empty">ما في سلف. بتظهر هون لما تدفع عن أصحابك بتقسيم الفاتورة.</div>')+'</main>';
 }
+function monthDiff(a,b){return (+b.slice(0,4)-+a.slice(0,4))*12+(+b.slice(5,7)-+a.slice(5,7))}
+function circleInfo(c){
+  var k=monthDiff(c.start,MONTH)+1,recvYm=ymAdd(c.start,c.turn-1);
+  return {k:k,active:k>=1&&k<=c.n,done:k>c.n,notStarted:k<1,recvYm:recvYm,isRecv:recvYm===MONTH,pot:c.amt*c.n,paidNow:c.paid.indexOf(MONTH)>-1,paidCount:c.paid.length};
+}
+function viewCircles(){
+  var cs=S.circles||[],h='<h2 class="sec disp">الجمعيات</h2><p class="fine" style="margin-top:-4px">تابع جمعياتك: قسطك الشهري، وشهر استلامك، وكم دفعت. بتسجّل القسط والاستلام بضغطة وبينضافوا لحركاتك.</p>';
+  var due=0,get=0;cs.forEach(function(c){var i=circleInfo(c);if(i.active&&!i.paidNow)due+=c.amt;if(i.active&&i.isRecv&&!c.recv)get+=i.pot});
+  if(cs.length)h+='<div class="vault"><small class="v-l">هالشهر</small><small class="v-p">'+cs.length+' جمعية</small><div class="v-v">'+amt(due)+'</div><div class="v-pl">'+(get>0?'أقساط عليك، وبتستلم '+fmt(get)+' '+C().cur:'أقساط لسا ما دفعتها')+'</div></div>';
+  h+=cs.map(function(c){
+    var i=circleInfo(c),pc=Math.max(0,Math.min(100,(i.active?i.k:i.done?c.n:0)/c.n*100)),st=i.done?'انتهت':i.notStarted?'تبدأ '+monthName(c.start):'الشهر '+i.k+' من '+c.n;
+    var btns='';
+    if(i.active&&!i.paidNow)btns+='<button class="btn small" data-act="circ-pay" data-id="'+c.id+'">دفعت قسط هالشهر</button>';
+    if(i.active&&i.paidNow)btns+='<span class="fbadge">دفعت هالشهر ✓</span>';
+    if(i.isRecv&&!c.recv&&i.active)btns+='<button class="btn small" data-act="circ-recv" data-id="'+c.id+'">استلمت الجمعية ('+fmt(i.pot)+')</button>';
+    if(c.recv)btns+='<span class="fbadge">استلمت ✓</span>';
+    return '<div class="card" style="padding:12px;margin-bottom:10px"><div class="bh" style="display:flex;justify-content:space-between;align-items:center"><b>'+esc(c.name)+'</b><button class="x" data-act="circ-del" data-id="'+c.id+'" aria-label="حذف">×</button></div>'+
+      '<small class="muted">'+st+' · قسطك '+fmt(c.amt)+' '+C().cur+' · دورك رقم '+c.turn+'</small><div class="bud-bar slim"><i class="ok" style="width:'+pc+'%"></i></div>'+
+      '<small class="muted">إجمالي الجمعية '+fmt(i.pot)+' '+C().cur+' · بتستلم في '+monthName(i.recvYm)+(c.recv?'':i.recvYm<MONTH?' (فات الشهر ولسا ما سجّلت)':'')+'</small>'+(btns?'<div class="inl" style="margin-top:8px;flex-wrap:wrap">'+btns+'</div>':'')+'</div>';
+  }).join('')||'<div class="empty">ما في جمعيات. أضف أول وحدة.</div>';
+  h+='<h2 class="sec disp" style="margin-top:20px">جمعية جديدة</h2><label class="l" for="c-name">الاسم</label><input class="f" id="c-name" placeholder="مثلاً: جمعية الشغل">'+
+    '<div class="inl"><div style="flex:1"><label class="l" for="c-amt">القسط الشهري ('+C().cur+')</label><input class="f" id="c-amt" inputmode="decimal"></div><div style="flex:1"><label class="l" for="c-n">عدد الأعضاء (الأشهر)</label><input class="f" id="c-n" inputmode="numeric" placeholder="مثلاً 10"></div></div>'+
+    '<div class="inl"><div style="flex:1"><label class="l" for="c-turn">دورك رقم</label><input class="f" id="c-turn" inputmode="numeric" placeholder="مثلاً 4"></div><div style="flex:1"><label class="l" for="c-start">أول شهر</label><input class="f" id="c-start" type="month" value="'+MONTH+'"></div></div>'+
+    '<button class="btn block" data-act="circ-add">أضف الجمعية</button>';
+  return '<main class="shell">'+topbar()+toolBack()+h+'</main>';
+}
 function toolBack(){return '<button class="link2" style="margin:0 0 6px" data-act="tool-back">→ الأدوات</button>'}
 function toolCard(act,ic,title,desc,extra,badge){return '<button class="tool" data-act="'+act+'"'+(extra||'')+'>'+(badge?fb():'')+'<span class="tl-c">'+icon(ic)+'</span><b>'+title+'</b><small>'+desc+'</small></button>'}
 function viewTools(){
@@ -972,6 +999,7 @@ function viewTools(){
   else if(p==='employee')g1.push(toolCard('tool','employee','التزاماتي',S.bills.filter(function(b){return !b.paid}).length+' لسا ما اندفعت',' data-t="persona"'));
   else g1.push(toolCard('tool','merchant','دفتر الديون',S.debts.length+' زبون',' data-t="persona"'));
   if(p!=='merchant'&&S.debts.some(function(d){return d.fr}))g1.push(toolCard('tool','split','سلف الأصدقاء',S.debts.filter(function(d){return d.fr}).length+' شخص',' data-t="friends"'));
+  g1.push(toolCard('tool','repeat','الجمعيات',(S.circles||[]).length?(S.circles||[]).length+' جمعية':'قسطك ودورك بالاستلام',' data-t="circles"'));
   (function(){var br=budgetRows(MONTH),tb=br.reduce(function(a,r){return a+r.b},0),ts=br.reduce(function(a,r){return a+r.sp},0);g1.push(toolCard('tool','budget','الميزانية',br.length?br.length+' تصنيف · '+Math.round(ts/tb*100)+'% مستخدم':'حدّد سقف لكل تصنيف',' data-t="budget"'))})();
   g1.push(toolCard('tool','tag','التصنيفات','غيّر الأسماء وأضف تصنيفاتك',' data-t="cats"'));
   g1.push(toolCard('tool','repeat','حركات متكررة',(S.recurring||[]).length+' حركة',' data-t="recurring"'));
@@ -987,6 +1015,7 @@ function viewExtra(){
   if(ui.tool==='budget')return '<main class="shell">'+topbar()+toolBack()+viewBudgets()+'</main>';
   if(ui.tool==='persona')return viewPersonaTool();
   if(ui.tool==='friends')return viewFriends();
+  if(ui.tool==='circles')return viewCircles();
   if(ui.tool==='recurring')return '<main class="shell">'+topbar()+toolBack()+recSection()+'</main>';
   return viewTools();
 }
@@ -2542,6 +2571,25 @@ document.addEventListener('click',function(e){
   }
   if(a==='alert-del'){S.alerts=(S.alerts||[]).filter(function(x){return x.id!==id});saveUser();render();return}
   if(a==='report-img'){shareReportImage();return}
+  if(a==='circ-add'){
+    var cn=($('#c-name').value||'').trim()||'جمعية',ca2=toNum($('#c-amt').value),cn2=parseInt($('#c-n').value,10),ct=parseInt($('#c-turn').value,10),cst=($('#c-start').value||'');
+    if(isNaN(ca2)||ca2<=0||!(cn2>=2&&cn2<=60)||!(ct>=1&&ct<=cn2)||!/^\d{4}-\d{2}$/.test(cst)){toast('تأكد من القسط وعدد الأعضاء ودورك (من 1 لعدد الأعضاء)');return}
+    if((S.circles||[]).length>=12){toast('الحد الأقصى 12 جمعية');return}
+    S.circles=S.circles||[];S.circles.push({id:uid(),name:cn.slice(0,60),amt:ca2,n:cn2,turn:ct,start:cst,paid:[],recv:false});saveUser();render();toast('تمت إضافة الجمعية');return;
+  }
+  if(a==='circ-del'){
+    var cd=(S.circles||[]).filter(function(x){return x.id===id})[0];if(!cd)return;
+    S.circles=S.circles.filter(function(x){return x.id!==id});saveUser();render();
+    toast('تم حذف الجمعية (الحركات المسجلة تبقى)',function(){S.circles.push(cd);saveUser();render()});return;
+  }
+  if(a==='circ-pay'){
+    var cp=(S.circles||[]).filter(function(x){return x.id===id})[0];if(!cp||cp.paid.indexOf(MONTH)>-1)return;
+    cp.paid.push(MONTH);S.tx.push({id:uid(),type:'exp',cat:'other',amt:cp.amt,note:'قسط جمعية: '+cp.name,date:TODAY});saveUser();render();toast('تم تسجيل القسط');return;
+  }
+  if(a==='circ-recv'){
+    var cr=(S.circles||[]).filter(function(x){return x.id===id})[0];if(!cr||cr.recv)return;
+    cr.recv=true;S.tx.push({id:uid(),type:'inc',cat:'otherinc',amt:cr.amt*cr.n,note:'استلام جمعية: '+cr.name,date:TODAY});saveUser();render();toast('تم تسجيل الاستلام');return;
+  }
   if(a==='install-app'){var di=deferredInstall;if(di){di.prompt();Promise.resolve(di.userChoice).then(function(){deferredInstall=null;render()}).catch(function(){})}return}
   if(a==='install-hide'){try{localStorage.setItem('dn_inst_hide','1')}catch(e){}render();return}
   if(a==='pin-key'){
