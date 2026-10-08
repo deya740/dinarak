@@ -500,7 +500,7 @@ var LANGS={JO:'ar-JO',PS:'ar-PS',SA:'ar-SA',AE:'ar-AE',KW:'ar-KW',EG:'ar-EG'};
 
 /* ---------- state ---------- */
 var S=null; /* signed-in user's data */
-var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,txq:'',txKind:'all',txCat:null,txAll:false,txLimit:80,txMonth0:null,txBack:false,scan:null,scanPrev:null,locked:false,lockY:0,tool:null,hist:null,histTs:0,histBusy:false,histErr:false,chartRange:'6m',chartCur:null,chartModel:null,metalEdit:null,metalWarnKey:null,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
+var ui={screen:'country',pre:{country:null,persona:null},returning:false,tab:'home',month:MONTH,sheet:null,addType:'exp',chat:[],delArm:false,accArm:false,proSel:[],proMsg:false,billEdit:null,txq:'',txKind:'all',txCat:null,txAll:false,txLimit:80,txMonth0:null,txBack:false,scan:null,scanPrev:null,locked:false,lockY:0,tool:null,hist:null,histTs:0,histBusy:false,histErr:false,chartRange:'6m',chartCur:null,chartModel:null,metalEdit:null,metalWarnKey:null,prices:null,pricesTs:0,pricesBusy:false,pricesErr:false,pricesTried:false,metalCur:null,split:null,billOff:false,rec:null,listening:false,recTimer:null,fbKind:'idea',fbBusy:false,accDeleting:false,stmt:null,stmtOff:false,stmtBusy:false,scanOff:false,scanning:false,scanLeft:null,aiOff:false,aiLeft:null,proOut:'',proBusy:false,pasting:false,lastKey:'',showAll:false,editId:null,multi:[],quick:[],undo:null,busy:false,draft:'',sample:null,ctl:null};
 var CFG=window.DINARAK_CONFIG||{}, sb=null, PKEY='dinarak:v3:pre';
 try{if(CFG.SUPABASE_URL&&CFG.SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient){sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}}catch(e){sb=null}
 var CLOUD=!!sb, cloud={uid:null,timer:null,dirty:false,failed:false}, oauthReturn=false;
@@ -883,10 +883,10 @@ function viewPersonaTool(){
     var un=S.bills.filter(function(b){return !b.paid}).reduce(function(a,b){return a+b.amt},0);
     h='<h2 class="sec disp">التزاماتي</h2><p class="fine" style="margin-top:-4px">فواتير وأقساط وجمعيات. المتبقي عليك: '+amt(un)+'. عند التأشير على "تم الدفع" يُخصم المبلغ من رصيدك مباشرة.</p>'+
     (S.bills.slice().sort(function(a,b){return a.day-b.day}).map(function(b){
-      return '<div class="row-i"><input type="checkbox" data-act="bill-toggle" data-id="'+b.id+'" '+(b.paid?'checked':'')+' aria-label="تم الدفع" style="width:22px;height:22px;accent-color:var(--accent)"><div class="t"><b style="'+(b.paid?'text-decoration:line-through;opacity:.6':'')+'">'+esc(b.name)+'</b><small>يوم '+b.day+' من الشهر</small></div><span>'+amt(b.amt)+'</span><button class="x" data-act="bill-del" data-id="'+b.id+'" aria-label="حذف">×</button></div>';
+      return '<div class="row-i"><input type="checkbox" data-act="bill-toggle" data-id="'+b.id+'" '+(b.paid?'checked':'')+' aria-label="تم الدفع" style="width:22px;height:22px;accent-color:var(--accent)"><div class="t"><b style="'+(b.paid?'text-decoration:line-through;opacity:.6':'')+'">'+esc(b.name)+'</b><small>يوم '+b.day+' من الشهر'+(b.paid?' · اندفع هالشهر':'')+'</small></div><span>'+amt(b.amt)+'</span><button class="link2" data-act="bill-edit" data-id="'+b.id+'">تعديل</button><button class="x" data-act="bill-del" data-id="'+b.id+'" aria-label="حذف">×</button></div>';
     }).join('')||'<div class="empty">ما في التزامات.</div>')+
-    '<h2 class="sec disp" style="margin-top:24px">التزام جديد</h2><label class="l" for="b-name">الاسم</label><input class="f" id="b-name" placeholder="مثلاً: فاتورة المياه">'+
-    '<div class="inl"><div style="flex:1"><label class="l" for="b-amt">المبلغ</label><input class="f" id="b-amt" inputmode="decimal"></div><div style="flex:1"><label class="l" for="b-day">يوم الاستحقاق</label><input class="f" id="b-day" inputmode="numeric" placeholder="1-28"></div></div><button class="btn block" data-act="bill-new">أضف</button>';
+    '<h2 class="sec disp" style="margin-top:24px">'+(ui.billEdit?'تعديل الالتزام':'التزام جديد')+'</h2><label class="l" for="b-name">الاسم</label><input class="f" id="b-name" placeholder="مثلاً: فاتورة المياه">'+
+    '<div class="inl"><div style="flex:1"><label class="l" for="b-amt">المبلغ</label><input class="f" id="b-amt" inputmode="decimal"></div><div style="flex:1"><label class="l" for="b-day">يوم الاستحقاق</label><input class="f" id="b-day" inputmode="numeric" placeholder="1-28"></div></div><button class="btn block" data-act="bill-new">'+(ui.billEdit?'احفظ التعديل':'أضف')+'</button>'+(ui.billEdit?'<button class="btn ghost block" data-act="bill-edit-cancel">إلغاء التعديل</button>':'');
   }
   if(p==='merchant'){
     var tt=S.debts.reduce(function(a,d){return a+d.owed},0);
@@ -1200,6 +1200,21 @@ function fillEdit(){
   if(x.type==='inc')$('#f-inc').value=INCATS[S.persona].indexOf(x.cat)>-1?x.cat:INCATS[S.persona][0];
   else $('#f-cat').value=PCATS[S.persona].indexOf(x.cat)>-1?x.cat:'other';
   syncChips();
+}
+function syncBillFromTx(x,b0){
+  if(!x.billId)return '';
+  var bl=S.bills.filter(function(b){return b.id===x.billId})[0];
+  if(!bl){delete x.billId;return ''}
+  var wasIn=b0.date.indexOf(MONTH)===0,isIn=x.date.indexOf(MONTH)===0,m=[];
+  if(x.type!=='exp'){                                   // صارت دخل: ما عادت دفعة التزام
+    delete x.billId;
+    if(wasIn){bl.paid=false;m.push('رجّعنا «'+bl.name+'» لـ"لسا ما اندفع"')}
+    return m.length?'تم التعديل. '+m.join('. '):'';
+  }
+  if(isIn&&x.amt!==bl.amt){bl.amt=x.amt;m.push('حدّثنا مبلغ «'+bl.name+'» لـ '+fmt(x.amt)+' '+C().cur)}
+  if(wasIn&&!isIn){bl.paid=false;m.push('«'+bl.name+'» رجع لـ"لسا ما اندفع" لأن تاريخ الدفعة صار خارج هالشهر')}
+  else if(!wasIn&&isIn&&!bl.paid){bl.paid=true;m.push('«'+bl.name+'» صار مدفوع هالشهر')}
+  return m.length?'تم التعديل. '+m.join('. '):'';
 }
 function payBill(id,paid){
   var b=S.bills.filter(function(x){return x.id===id})[0];if(!b)return;
@@ -2141,9 +2156,9 @@ document.addEventListener('click',function(e){
     }else{ui.pre.persona=pp;savePre()}
     render();window.scrollTo(0,0);return;
   }
-  if(a==='nav'){ui.tab=el.getAttribute('data-tab');ui.tool=null;ui.accArm=false;render();window.scrollTo(0,0);return}
+  if(a==='nav'){ui.tab=el.getAttribute('data-tab');ui.tool=null;ui.billEdit=null;ui.accArm=false;render();window.scrollTo(0,0);return}
   if(a==='tool'){ui.tab='extra';ui.tool=el.getAttribute('data-t');ui.accArm=false;render();window.scrollTo(0,0);return}
-  if(a==='tool-back'){ui.tool=null;render();window.scrollTo(0,0);return}
+  if(a==='tool-back'){ui.tool=null;ui.billEdit=null;render();window.scrollTo(0,0);return}
   if(a==='month'){var m=el.getAttribute('data-m');if(m){ui.month=m;ui.proMsg=false;ui.delArm=false;render()}return}
   if(a==='open-add'){ui.editId=null;ui.multi=[];ui.sheet='add';ui.addType='exp';render();return}
   if(a==='open-report'){ui.repMonth0=ui.month;ui.sheet='report';ui.delArm=false;ui.proMsg=false;ui.proOut='';ui.proSel=[];render();return}
@@ -2198,8 +2213,9 @@ document.addEventListener('click',function(e){
     var tp=ui.addType, ct=tp==='inc'?$('#f-inc').value:$('#f-cat').value, nt=$('#f-note').value.trim(), dv=pickDate();
     if(ui.editId){
       var ex0=S.tx.filter(function(z){return z.id===ui.editId})[0];
-      if(ex0){ex0.type=tp;ex0.cat=ct;ex0.amt=v;ex0.note=nt;ex0.date=dv}
-      ui.editId=null;ui.sheet=ui.txBack?'tx':null;ui.txBack=false;saveUser();render();toast('تم التعديل');return;
+      var bmsg='';
+      if(ex0){var b0={type:ex0.type,amt:ex0.amt,date:ex0.date};ex0.type=tp;ex0.cat=ct;ex0.amt=v;ex0.note=nt;ex0.date=dv;bmsg=syncBillFromTx(ex0,b0)}
+      ui.editId=null;ui.sheet=ui.txBack?'tx':null;ui.txBack=false;saveUser();render();toast(bmsg||'تم التعديل');return;
     }
     var repOn=!!($('#f-rep')&&$('#f-rep').checked), rday=recDay(parseInt(dv.slice(8,10),10));
     if(repOn){if(!S.recurring)S.recurring=[];S.recurring.push({id:uid(),type:tp,cat:ct,amt:v,note:nt,day:rday,active:true,next:ymAdd(dv.slice(0,7),1)})}
@@ -2221,10 +2237,27 @@ document.addEventListener('click',function(e){
     if(!gn||isNaN(gt)||gt<=0){toast('اكتب اسم الهدف والمبلغ');return}
     S.goals.push({id:uid(),name:gn,target:gt,saved:0});saveUser();render();toast('تمت إضافة الهدف');return;
   }
-  if(a==='bill-del'){S.bills=S.bills.filter(function(x){return x.id!==id});saveUser();render();return}
+  if(a==='bill-edit'){
+    var bb=S.bills.filter(function(x){return x.id===id})[0];if(!bb)return;
+    ui.billEdit=id;render();
+    var bf=function(q,v){var e=$(q);if(e)e.value=v};bf('#b-name',bb.name);bf('#b-amt',String(bb.amt));bf('#b-day',String(bb.day));
+    var bnm=$('#b-name');if(bnm&&bnm.scrollIntoView)bnm.scrollIntoView();return;
+  }
+  if(a==='bill-edit-cancel'){ui.billEdit=null;render();return}
+  if(a==='bill-del'){if(ui.billEdit===id)ui.billEdit=null;S.bills=S.bills.filter(function(x){return x.id!==id});saveUser();render();return}
   if(a==='bill-new'){
     var bn=$('#b-name').value.trim(), ba=toNum($('#b-amt').value), bd=parseInt(toNum($('#b-day').value),10);
     if(!bn||isNaN(ba)||ba<=0||isNaN(bd)||bd<1||bd>31){toast('عبّ الاسم والمبلغ واليوم (1-31)');return}
+    if(ui.billEdit){
+      var eb=S.bills.filter(function(x){return x.id===ui.billEdit})[0];
+      if(eb){
+        eb.name=bn;eb.amt=ba;eb.day=bd;
+        var linked=eb.paid?S.tx.filter(function(x){return x.billId===eb.id&&x.date.indexOf(MONTH)===0}):[];
+        linked.forEach(function(x){x.amt=ba;x.note=bn});
+        ui.billEdit=null;saveUser();render();toast(linked.length?'تم التعديل، وتحدّث الخصم من رصيدك هالشهر':'تم تعديل الالتزام');return;
+      }
+      ui.billEdit=null;
+    }
     S.bills.push({id:uid(),name:bn,amt:ba,day:bd,paid:false});saveUser();render();toast('تمت إضافة الالتزام');return;
   }
   if(a==='debt-new'){
